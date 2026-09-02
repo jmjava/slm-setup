@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "local-coding-slm": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["${CLAUDE_PROJECT_DIR:-.}/src/local_coding_slm/server.py"],
+      "env": {
+        "OLLAMA_BASE_URL": "${OLLAMA_BASE_URL:-http://127.0.0.1:11434}",
+        "OLLAMA_FAST_MODEL": "${OLLAMA_FAST_MODEL:-qwen3.5:9b}",
+        "OLLAMA_STRONG_MODEL": "${OLLAMA_STRONG_MODEL:-devstral-small-2}",
+        "OLLAMA_NUM_CTX": "${OLLAMA_NUM_CTX:-16384}"
+      }
+    }
+  }
+}
