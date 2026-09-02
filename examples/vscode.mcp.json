@@ -1,0 +1,23 @@
+{
+  "inputs": [
+    {
+      "id": "ollamaBaseUrl",
+      "type": "promptString",
+      "description": "Ollama base URL (localhost or private LAN). Do not commit the real value.",
+      "default": "http://127.0.0.1:11434"
+    }
+  ],
+  "servers": {
+    "local-coding-slm": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["${workspaceFolder}/src/local_coding_slm/server.py"],
+      "env": {
+        "OLLAMA_BASE_URL": "${input:ollamaBaseUrl}",
+        "OLLAMA_FAST_MODEL": "qwen3.5:9b",
+        "OLLAMA_STRONG_MODEL": "devstral-small-2",
+        "OLLAMA_NUM_CTX": "16384"
+      }
+    }
+  }
+}
