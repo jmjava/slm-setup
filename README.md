@@ -25,9 +25,10 @@ not wired yet. Cloud agents stay unsupported.
 | A10 Cloud agents | Unsupported by design |
 | A11 no private IPs / emails in git | Done |
 
-If Cursor does not attach `.cursor/mcp.json`, add the same stdio command to
-user MCP config (`~/.cursor/mcp.json`) with an absolute path to the project
-venv Python. Keep the real `OLLAMA_BASE_URL` out of git.
+Project MCP now starts `scripts/run_mcp.sh`, which finds the repo from the
+script path and loads `.env`. Empty `${env:NAME}` interpolations no longer
+block the real URL. User MCP config remains a fallback. Keep the real
+`OLLAMA_BASE_URL` out of git.
 
 Draft PR: [jmjava/slm-setup#2](https://github.com/jmjava/slm-setup/pull/2).
 
@@ -90,9 +91,10 @@ private LAN.
    .venv/bin/python scripts/prove_acceptance.py
    ```
 
-Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot
+Cursor loads `.cursor/mcp.json`, which runs `scripts/run_mcp.sh`. Copilot
 uses `.vscode/mcp.json`. Claude Code uses `.mcp.json`. Reload the client after
-the first checkout so it picks up the server.
+the first checkout so it picks up the server. Informal Phase 3 notes go in
+`docs/phase3-log.md`.
 
 ## Security
 

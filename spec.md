@@ -532,9 +532,14 @@ OLLAMA_BASE_URL
 │   └── local_coding_slm/
 │       ├── server.py                ← stdio MCP server
 │       ├── ollama_client.py
+│       ├── envfile.py
 │       └── prompts.py
+├── scripts/
+│   ├── run_mcp.sh                   ← project MCP entry (loads .env)
+│   └── prove_acceptance.py
 └── tests/
-    └── test_ollama_client.py
+    ├── test_ollama_client.py
+    └── test_envfile.py
 ```
 
 Phase 1 of this repository is the spec, public-safe examples, and a running
