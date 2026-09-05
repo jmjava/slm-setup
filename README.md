@@ -38,6 +38,8 @@ Draft PR: [jmjava/slm-setup#2](https://github.com/jmjava/slm-setup/pull/2).
   Cursor / Copilot / Claude Code adapters.
 - **[examples/](examples/)** — public-safe client config templates. Copy them
   locally; put the real Ollama URL in your environment, not in git.
+- **[examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md)** —
+  second GPU host in WSL over SSH, placeholders only.
 
 ## What this repo is not
 

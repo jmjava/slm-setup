@@ -362,6 +362,10 @@ Linux / macOS: `ip -4 addr` or `ifconfig`.
 Record that address in the **workstation** environment as `OLLAMA_BASE_URL`.
 Never commit it.
 
+If the inference host is **Ubuntu in WSL2** on a second Windows PC, prefer
+an SSH local forward and keep Ollama on WSL localhost. Public-safe commands
+and placeholders: [examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md).
+
 ### 9.5 Sanity checks
 
 On the inference host:
@@ -549,7 +553,8 @@ OLLAMA_BASE_URL
 ├── examples/
 │   ├── cursor.mcp.json
 │   ├── vscode.mcp.json
-│   └── claude.mcp.json
+│   ├── claude.mcp.json
+│   └── downstairs-wsl-gpu.md        ← WSL GPU host via SSH (placeholders)
 ├── src/
 │   └── local_coding_slm/
 │       ├── server.py                ← stdio MCP server
