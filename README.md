@@ -5,6 +5,32 @@ in Cursor, GitHub Copilot, and Claude Code plan and review. The local model
 does bounded, mechanical generation on a private GPU host running
 [Ollama](https://ollama.com). No OpenRouter (or other extra router) is required.
 
+## Status (2026-09-04)
+
+The local same-machine lab is running. Phase 1 (Ollama + starter models) and
+Phase 2 (stdio MCP server) are in this repo. A second GPU host on the LAN is
+not wired yet. Cloud agents stay unsupported.
+
+| Check | State |
+| --- | --- |
+| A1 tags list fast + strong models | Done on localhost |
+| A2 fast-model chat, GPU visible | Done |
+| A3 strong-model chat | Done (GPU or GPU+RAM is allowed) |
+| A4 LAN bind / second machine | Skipped (same-machine lab) |
+| A5 `local_status` | Done |
+| A6 `local_generate_tests` | Done |
+| A7 Cursor Agent calls a `local_*` tool | Done |
+| A8 Copilot Agent | Not run |
+| A9 Claude Code local | Not run |
+| A10 Cloud agents | Unsupported by design |
+| A11 no private IPs / emails in git | Done |
+
+If Cursor does not attach `.cursor/mcp.json`, add the same stdio command to
+user MCP config (`~/.cursor/mcp.json`) with an absolute path to the project
+venv Python. Keep the real `OLLAMA_BASE_URL` out of git.
+
+Draft PR: [jmjava/slm-setup#2](https://github.com/jmjava/slm-setup/pull/2).
+
 ## Read this first
 
 - **[spec.md](spec.md)** — architecture, routing rules, Ollama setup, and
