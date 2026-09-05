@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "local-coding-slm"
+version = "0.1.0"
+description = "stdio MCP bridge from premium agents to a private Ollama SLM"
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.9.0,<2"]
+
+[project.optional-dependencies]
+dev = []
+
+[project.scripts]
+local-coding-slm = "local_coding_slm.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
