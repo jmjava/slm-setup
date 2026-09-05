@@ -530,15 +530,15 @@ OLLAMA_BASE_URL
 │   └── claude.mcp.json
 ├── src/
 │   └── local_coding_slm/
-│       ├── server.py                ← stdio MCP server (later)
+│       ├── server.py                ← stdio MCP server
 │       ├── ollama_client.py
 │       └── prompts.py
 └── tests/
     └── test_ollama_client.py
 ```
 
-Phase 1 of this repository is the spec and public-safe examples. The MCP
-server is the next implementation slice.
+Phase 1 of this repository is the spec, public-safe examples, and a running
+local inference host. Phase 2 is the stdio MCP server in `src/local_coding_slm`.
 
 ---
 
