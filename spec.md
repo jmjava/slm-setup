@@ -38,8 +38,9 @@ Claude).
 
 1. **One MCP implementation, three front ends.** Cursor, Copilot, and Claude
    Code all call the same local tool server.
-2. **Keep the inference host private.** Ollama listens on the LAN only. Do not
-   port-forward it through a public router. Do not put it on the internet.
+2. **Keep the inference host private.** Prefer Ollama on `127.0.0.1` and reach
+   a second host with `ssh -L`. Do not port-forward 11434 through a public
+   router. Do not put Ollama on the internet.
 3. **Do not point Cursor at Ollama as a model provider.** Cursor's normal model
    selector and "Override OpenAI Base URL" path go through Cursor's servers, so
    a private `http://<lan-host>:11434` endpoint is not reachable. A local MCP
@@ -505,16 +506,57 @@ local session on the workstation.
 
 ## 12. Security
 
-- Bind Ollama to the LAN only. **No public port forward.**
-- Firewall 11434 on the private profile / private subnet only.
+### 12.1 Deployment
+
+- Prefer Ollama on **`127.0.0.1`**. Reach a second GPU host with
+  `ssh -L 11434:127.0.0.1:11434` (see `examples/downstairs-wsl-gpu.md`).
+  Do **not** bind `0.0.0.0` unless you have a written reason.
+- **No public port forward.** No ngrok, Cloudflare Tunnel, or similar.
 - Do not send secrets, private keys, `.env` files, or credentials into MCP tool
   arguments.
 - Committed configs must not contain IPs, hostnames, tokens, or usernames.
 - The MCP server is a local process. It should talk only to `OLLAMA_BASE_URL`.
 - If you later add any HTTP MCP transport, put it on localhost and authenticate
   it. Phase 1 stays on stdio.
-- Treat MCP tool results as untrusted model output. The premium agent reviews
-  before applying patches.
+- Treat MCP tool results as **untrusted model output**. The premium agent
+  reviews before applying patches. A local model can still emit insecure or
+  malicious code.
+
+Run the defensive checker on the workstation after install or `.env` changes:
+
+```bash
+PYTHONPATH=src python3 scripts/check_deployment_safety.py
+```
+
+The checker looks at *this* host only: `OLLAMA_BASE_URL`, model tags, whether
+`.env` is ignored, placeholder IPs in git, and whether port 11434 is listening
+on a wildcard. It does **not** scan other machines and it cannot prove weights
+are clean.
+
+### 12.2 Open-weight models
+
+Open weights are a **privacy** win (inference stays on your GPU). They are not
+an alignment or integrity win.
+
+- **Qwen is a family, not an SLM.** Large Qwen models are LLMs. The starter
+  tag `qwen3.5:9b` is the SLM this repo means: ~9B, local, bounded generation.
+- Official [Ollama library](https://ollama.com/library) tags only
+  (`qwen3.5:9b`, `devstral-small-2`). Do not load a random GGUF, a stranger's
+  fine-tune, or a `user/name` blob just because it "codes better."
+- It is easy to ship a **trojaned SLM**: poisoned fine-tunes and unofficial
+  weight files can look helpful and still plant backdoors in generated code.
+  This repo will not document how to do that. Pull from the official library,
+  pin the tags in `.env`, and review every patch.
+- The checker can reject path/URL-shaped tags and public binds. It **cannot**
+  detect a backdoor inside an otherwise normal-looking official tag. Review
+  remains mandatory.
+- Do not give the SLM shell, credentials, or unattended merge rights.
+
+### 12.3 What local does not mean
+
+The premium agent still sees the repo and the tool results. Local inference
+is not an air gap. Keep household SSH facts and secrets out of MCP arguments
+and out of git.
 
 ---
 
@@ -563,10 +605,12 @@ OLLAMA_BASE_URL
 │       └── prompts.py
 ├── scripts/
 │   ├── run_mcp.sh                   ← project MCP entry (loads .env)
-│   └── prove_acceptance.py
+│   ├── prove_acceptance.py
+│   └── check_deployment_safety.py   ← defensive bind / tag / git checks
 └── tests/
     ├── test_ollama_client.py
-    └── test_envfile.py
+    ├── test_envfile.py
+    └── test_safety.py
 ```
 
 Phase 1 of this repository is the spec, public-safe examples, and a running
@@ -622,6 +666,7 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 | A9 | Claude Code local | `claude mcp list` shows `local-coding-slm` connected |
 | A10 | Cloud agents | Documented as unsupported; no private URL in repo Copilot MCP settings |
 | A11 | `git grep` for private IPs / usernames | No RFC1918 addresses except documented placeholders; no `@` emails |
+| A12 | `scripts/check_deployment_safety.py` | Loopback (or SSH-forward) URL, official tags, `.env` ignored, no wildcard listen |
 
 ---
 

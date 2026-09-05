@@ -60,7 +60,13 @@ private LAN.
    PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
    ```
 
-6. Live acceptance for the MCP tools (needs Ollama + the fast model):
+6. Deployment safety checks (no GPU required; inspects this host only):
+
+   ```bash
+   PYTHONPATH=src .venv/bin/python scripts/check_deployment_safety.py
+   ```
+
+7. Live acceptance for the MCP tools (needs Ollama + the fast model):
 
    ```bash
    .venv/bin/python scripts/prove_acceptance.py
@@ -72,5 +78,13 @@ the first checkout so it picks up the server.
 
 ## Security
 
-Keep Ollama on localhost or a private LAN. Do not port-forward it. Do not
-commit `.env` or model stores.
+Keep Ollama on `127.0.0.1`. Prefer `ssh -L` to a second host instead of binding
+`0.0.0.0`. Do not port-forward 11434. Do not commit `.env` or model stores.
+
+Open-weight models are a privacy win, not an integrity guarantee. **Qwen** is a
+model family (some tags are large LLMs). `qwen3.5:9b` is the starter SLM here.
+Pull only official Ollama library tags. Unofficial GGUFs and one-off fine-tunes
+are the usual way a trojaned SLM shows up. Treat every `local_*` result as
+untrusted and review it before applying. The checker cannot see inside weights.
+
+Details: [spec.md §12](spec.md#12-security).
