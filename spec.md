@@ -108,6 +108,27 @@ Rough fit on a 16 GB GPU:
 Context windows consume extra VRAM. Start at **16K–32K** tokens even if a model
 advertises 256K.
 
+### Worked example: RTX 4080 Super + 64 GB RAM
+
+An RTX 4080 Super has **16 GB VRAM**. With **64 GB** system RAM it matches the
+recommended starting point above. VRAM is still the limit. Extra RAM only
+helps if a model spills off the GPU, and that spill is usually too slow for
+interactive coding.
+
+On this class of card, install the same starter pair as §5:
+
+| Role | Tag | Why it fits |
+| --- | --- | --- |
+| Fast | `qwen3.5:9b` (~6.6 GB) | Fully on GPU, room for 16K context |
+| Strong | `devstral-small-2` (~15 GB) | At the 16 GB edge; keep `OLLAMA_NUM_CTX=16384` |
+
+Install both. Default to the 9B. Escalate to Devstral only when the agent
+needs multi-file work.
+
+Do **not** start with 30B+ Q4 on this card. Those need offload and will feel
+worse than Devstral in VRAM. Later, if Devstral is fully resident and you
+want more, try a ~14B Q4 coding tag — not a 30B.
+
 ---
 
 ## 5. Starter models
@@ -124,7 +145,8 @@ Install both. Use the fast model by default. Escalate to the strong model only
 when the premium agent decides the task needs it.
 
 Later candidates (not first experiments) include larger Qwen coding models
-whose Q4 weights exceed 16 GB VRAM.
+whose Q4 weights exceed 16 GB VRAM. On a 16 GB card such as an RTX 4080
+Super, stay on the starter pair first; see the worked example in §4.
 
 Environment variables (never commit real values if they encode a private host):
 
@@ -340,6 +362,10 @@ Linux / macOS: `ip -4 addr` or `ifconfig`.
 Record that address in the **workstation** environment as `OLLAMA_BASE_URL`.
 Never commit it.
 
+If the inference host is **Ubuntu in WSL2** on a second Windows PC, prefer
+an SSH local forward and keep Ollama on WSL localhost. Public-safe commands
+and placeholders: [examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md).
+
 ### 9.5 Sanity checks
 
 On the inference host:
@@ -527,14 +553,20 @@ OLLAMA_BASE_URL
 ├── examples/
 │   ├── cursor.mcp.json
 │   ├── vscode.mcp.json
-│   └── claude.mcp.json
+│   ├── claude.mcp.json
+│   └── downstairs-wsl-gpu.md        ← WSL GPU host via SSH (placeholders)
 ├── src/
 │   └── local_coding_slm/
 │       ├── server.py                ← stdio MCP server
 │       ├── ollama_client.py
+│       ├── envfile.py
 │       └── prompts.py
+├── scripts/
+│   ├── run_mcp.sh                   ← project MCP entry (loads .env)
+│   └── prove_acceptance.py
 └── tests/
-    └── test_ollama_client.py
+    ├── test_ollama_client.py
+    └── test_envfile.py
 ```
 
 Phase 1 of this repository is the spec, public-safe examples, and a running
