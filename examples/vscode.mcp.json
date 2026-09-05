@@ -2,7 +2,14 @@
   "servers": {
     "local-coding-slm": {
       "type": "stdio",
-      "command": "${workspaceFolder}/scripts/run_mcp.sh"
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["${workspaceFolder}/src/local_coding_slm/server.py"],
+      "env": {
+        "OLLAMA_BASE_URL": "${input:ollamaBaseUrl}",
+        "OLLAMA_FAST_MODEL": "qwen3.5:9b",
+        "OLLAMA_STRONG_MODEL": "devstral-small-2",
+        "OLLAMA_NUM_CTX": "16384"
+      }
     }
   }
 }

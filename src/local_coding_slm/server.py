@@ -13,7 +13,6 @@ _SRC = Path(__file__).resolve().parents[1]
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from local_coding_slm.envfile import merge_dotenv  # noqa: E402
 from local_coding_slm.ollama_client import (  # noqa: E402
     OllamaError,
     chat,
@@ -24,7 +23,7 @@ from local_coding_slm.prompts import SYSTEM_PROMPTS  # noqa: E402
 
 
 def _load_dotenv() -> None:
-    """Load repo-root .env. Empty interpolated env vars do not win."""
+    """Load repo-root .env without overwriting an already-set variable."""
     here = Path(__file__).resolve()
     candidates = [
         Path.cwd() / ".env",
@@ -33,7 +32,15 @@ def _load_dotenv() -> None:
     for path in candidates:
         if not path.is_file():
             continue
-        merge_dotenv(path.read_text(encoding="utf-8").splitlines(), os.environ)
+        for raw in path.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip("'").strip('"')
+            if key and key not in os.environ:
+                os.environ[key] = value
         break
 
 
