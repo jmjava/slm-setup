@@ -40,16 +40,18 @@ Public-safe notes: [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
 
 ### Halo-specific work (when the box exists)
 
-1. Install current Ollama on the Halo with AMD ROCm; confirm GPU/iGPU
-   placement with `ollama ps` after a short chat.
+1. Validate current Ollama on the Halo with its supported AMD backend; record
+   whether ROCm or Vulkan is used. Confirm accelerated placement after a short
+   chat before selecting larger models.
 2. Pull the starter pair. Leave larger coding tags for a later benchmark.
 3. Reach the API from the workstation. Prefer
    `ssh -L 11434:127.0.0.1:11434` and keep Ollama on Halo localhost.
    A private-interface bind plus a workstation-only firewall is optional.
 4. Point gitignored `.env` at that URL. Reload desktop MCP. Re-run
    `scripts/check_deployment_safety.py`.
-5. Repeat acceptance **A1–A7** and **A11–A12**. Run **A4** (external
-   `curl` must fail). **A8/A9** only if those clients are in use.
+5. Repeat acceptance **A1–A7** and **A11–A12**. Run **A4** (the workstation
+   succeeds through SSH; an unauthorized LAN client fails). **A8/A9** only if
+   those clients are in use.
 6. After the starter pair feels usable, record a Halo benchmark
    (model + quant, effective context, tok/s, time to first token,
    peak unified memory, whether output is reviewable). Do not treat a

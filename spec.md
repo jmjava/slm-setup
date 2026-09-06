@@ -177,8 +177,10 @@ OLLAMA_STRONG_MODEL=devstral-small-2
 OLLAMA_NUM_CTX=16384
 ```
 
-When the inference host is a second machine, set `OLLAMA_BASE_URL` to
-`http://<inference-host>:11434` on the workstation only.
+When the inference host is a second machine, prefer an SSH local forward and
+keep `OLLAMA_BASE_URL` on the workstation set to
+`http://127.0.0.1:11434`. Use a direct private-host URL only for the optional
+firewalled LAN fallback in §9.3.
 
 ---
 
@@ -329,34 +331,41 @@ ollama ps
 
 `ollama ps` shows whether the model is on GPU, CPU, or split.
 
-### 9.2 Listen on the private network (optional)
+### 9.2 Reach a second host with SSH (preferred)
 
-Ollama binds `127.0.0.1:11434` by default. Same-machine setups can leave that
-alone. Two-machine setups must bind all interfaces.
+Ollama binds `127.0.0.1:11434` by default. Leave that unchanged on both
+same-machine and preferred two-machine deployments. From the workstation,
+forward a local port to Ollama through the inference host's existing SSH
+service:
 
-Set `OLLAMA_HOST=0.0.0.0:11434` using the official per-OS method
-([Ollama FAQ](https://docs.ollama.com/faq)):
+```bash
+ssh -N -L 11434:127.0.0.1:11434 user@<inference-host>
+```
 
-| OS | How |
-| --- | --- |
-| Windows | Quit Ollama from the tray. Settings → environment variables for your account → `OLLAMA_HOST` = `0.0.0.0:11434`. Restart Ollama from the Start menu. |
-| Linux (systemd) | `sudo systemctl edit ollama.service` and add `Environment="OLLAMA_HOST=0.0.0.0:11434"` under `[Service]`. Then `daemon-reload` and restart. |
-| macOS app | `launchctl setenv OLLAMA_HOST "0.0.0.0:11434"` and restart the app. |
+Then keep the workstation setting on loopback:
 
-Optional but useful:
+```bash
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+```
+
+The real SSH user and host stay in local configuration and must not be
+committed. Optional Ollama runtime settings:
 
 ```bash
 OLLAMA_CONTEXT_LENGTH=16384
 OLLAMA_KEEP_ALIVE=30m
 ```
 
-Do **not** set a public-router port forward for 11434.
+Do **not** create a public tunnel or router port-forward for 11434.
 
-### 9.3 Firewall (LAN only)
+### 9.3 Direct private-LAN fallback (optional)
 
-Allow **inbound TCP 11434** on the **private / domain** profile only.
+Use this only when SSH local forwarding is not practical. Bind Ollama to a
+specific private interface where the operating system supports it; avoid
+`0.0.0.0`. Allow inbound TCP 11434 only from the workstation.
 
-Windows (Administrator PowerShell), private profile:
+Windows (Administrator PowerShell), private profile, with the workstation
+address substituted locally:
 
 ```powershell
 New-NetFirewallRule `
@@ -364,14 +373,15 @@ New-NetFirewallRule `
   -Direction Inbound `
   -Protocol TCP `
   -LocalPort 11434 `
+  -RemoteAddress <workstation-private-ip> `
   -Action Allow `
   -Profile Private
 ```
 
-Linux example with ufw, restricted to a private subnet placeholder:
+Linux example with ufw, restricted to a workstation placeholder:
 
 ```bash
-sudo ufw allow from 192.168.0.0/16 to any port 11434 proto tcp
+sudo ufw allow from <workstation-private-ip> to any port 11434 proto tcp
 ```
 
 ### 9.4 Discover the inference-host address (local only)
@@ -379,8 +389,10 @@ sudo ufw allow from 192.168.0.0/16 to any port 11434 proto tcp
 Windows: `ipconfig` → IPv4 address.
 Linux / macOS: `ip -4 addr` or `ifconfig`.
 
-Record that address in the **workstation** environment as `OLLAMA_BASE_URL`.
-Never commit it.
+For the direct-LAN fallback only, record that address in the **workstation**
+environment as `OLLAMA_BASE_URL`. Never commit it. The preferred SSH path keeps
+`OLLAMA_BASE_URL` on loopback and uses the private address only in the local
+SSH command or configuration.
 
 If the inference host is **Ubuntu in WSL2** on a second Windows PC, prefer
 an SSH local forward and keep Ollama on WSL localhost. Public-safe commands
@@ -709,7 +721,7 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 | A1 | `curl $OLLAMA_BASE_URL/api/tags` | JSON lists `qwen3.5:9b` and `devstral-small-2` (or the configured tags) |
 | A2 | Chat prompt to the fast model | Response in a few seconds; `ollama ps` shows GPU |
 | A3 | Chat prompt to the strong model | Completes; GPU or GPU+RAM is acceptable |
-| A4 | From a second machine, `curl` fails if firewall/bind is wrong | Documents LAN exposure; skip if same-machine |
+| A4 | Workstation reaches Ollama through SSH; an unauthorized LAN client cannot reach 11434 | No direct LAN exposure; skip if same-machine |
 | A5 | `local_status` MCP tool | Reports both models and the configured base URL host *without* requiring that URL in git |
 | A6 | `local_generate_tests` with one small function | Returns a test file / diff the premium agent can apply |
 | A7 | Cursor Agent | Premium model calls a `local_*` tool on a mechanical prompt |

@@ -3,7 +3,8 @@
 A later home-lab split is:
 
 - **Workstation** — IDE + `local-coding-slm` MCP (unchanged)
-- **Halo-class AMD box** — Ryzen AI APU, unified memory, Ollama + ROCm
+- **Halo-class AMD box** — Ryzen AI APU, unified memory, and an
+  AMD-compatible inference backend to validate
 
 This file is a **future host profile**, not a current install guide.
 It uses placeholders only. Put the real hostname, SSH name, and address
@@ -54,9 +55,12 @@ or tunnel URL. Re-run it after any `.env` change.
 
 ## On the Halo (when this phase is claimed)
 
-1. Install a current Ollama with AMD ROCm. Distro packages can be too old.
-2. Pull the starter tags (`qwen3.5:9b`, `devstral-small-2`) and confirm
-   `ollama ps` after one short chat.
+1. Validate the current Ollama release on the Halo with its supported AMD
+   backend. Record whether ROCm or Vulkan is used; do not assume either path
+   before testing the actual machine.
+2. Pull the starter tags (`qwen3.5:9b`, `devstral-small-2`) only after the
+   runtime answers on loopback, then confirm accelerated placement after one
+   short chat.
 3. Leave Ollama on `127.0.0.1:11434` if you use the SSH forward above.
 4. Treat "no route" as host down before changing addresses.
 
