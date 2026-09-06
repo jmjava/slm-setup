@@ -52,6 +52,23 @@ Observed result:
 The A6 checker validates the response shape; it does not execute the generated
 pytest file. The semantic refactor check below provides stronger evidence.
 
+## Live invocation from Cursor
+
+The MCP server was also invoked directly from a Cursor chat rather than through
+the standalone acceptance script:
+
+- Cursor discovered all six registered `local_*` tools.
+- `local_status` reached Ollama on loopback and found both configured models.
+- The fast model returned the requested pytest cases but omitted
+  `import pytest`; that response was rejected rather than counted as a pass.
+- The request was tightened to require every import and escalated to the strong
+  model. Its returned test file was executed in an isolated pytest environment:
+  **2 tests passed**.
+
+This exercises the path `Cursor -> stdio MCP -> real Ollama -> model response`.
+It does not exercise an IDE file-application workflow, and one corrected
+example does not establish a general generation success rate.
+
 ## Live semantic refactor
 
 Commands:
@@ -107,6 +124,8 @@ the configured Ollama port listened on loopback rather than a wildcard.
 The evidence supports these narrow claims:
 
 - The current stdio MCP bridge can reach a real local Ollama runtime.
+- Cursor can discover and invoke the MCP tools, and an executed test-generation
+  response passed after an incomplete fast-model response was rejected.
 - Both configured models can complete one bounded, single-file refactor while
   preserving the tested behavior.
 - Prompt precision and output-format adherence need to be part of acceptance.
