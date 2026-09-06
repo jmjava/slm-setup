@@ -15,6 +15,8 @@ does bounded, mechanical generation on a private GPU host running
   diagrams (Halo is the same containers, a later host).
 - **[docs/local-acceptance-results-2026-09-06.md](docs/local-acceptance-results-2026-09-06.md)**
   — dated unit, live MCP, and semantic-refactor results with limitations.
+- **[docs/security-scan-results-2026-09-06.md](docs/security-scan-results-2026-09-06.md)**
+  — dated Gitleaks, GitHub alert, tracked-tree, and deployment-safety results.
 - **[examples/](examples/)** — public-safe client config templates. Copy them
   locally; put the real Ollama URL in your environment, not in git.
 - **[examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md)** —
