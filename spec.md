@@ -72,12 +72,15 @@ Claude premium  ────┘             │
 | Role | What it is | What it is not |
 | --- | --- | --- |
 | **Workstation** | Machine running the IDE / CLI. Hosts the MCP server. | Does not need to load the model. |
-| **Inference host** | Machine with a capable NVIDIA GPU. Runs Ollama. | Does not need the IDE installed. |
+| **Inference host** | Machine that runs Ollama (NVIDIA GPU now; Halo-class AMD later). | Does not need the IDE installed. |
 | **Premium agent** | Plans, reads the repo, calls MCP tools, reviews output. | Does not talk to Ollama directly. |
 | **Local SLM** | Generates bounded artifacts (tests, diffs, explanations). | Does not own repository context or tool use in the IDE. |
 
 Workstation and inference host may be the same computer. They may also be two
 machines on one private network. The MCP server only needs an HTTP URL.
+
+C4 context, container, component, and deployment-variant diagrams:
+[docs/c4.md](docs/c4.md).
 
 ---
 
@@ -129,6 +132,22 @@ needs multi-file work.
 Do **not** start with 30B+ Q4 on this card. Those need offload and will feel
 worse than Devstral in VRAM. Later, if Devstral is fully resident and you
 want more, try a ~14B Q4 coding tag — not a 30B.
+
+### Future host profile: Halo-class AMD
+
+A later inference host may be an AMD Ryzen AI Halo-class APU (unified
+memory, ROCm, Ollama). That does **not** change the MCP contract. The
+workstation still runs `local-coding-slm`; only `OLLAMA_BASE_URL` (or an
+SSH local-forward to the same loopback URL) changes.
+
+Do not start that lab until Phase 3 measurement and the existing second
+NVIDIA host are in a known state. Planning index:
+[docs/roadmap.md](docs/roadmap.md). Public-safe notes:
+[examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md).
+
+On Halo, treat unified memory the same way this spec treats VRAM: start
+at **16K–32K** context and the starter pair. A large advertised window is
+not permission to send the repository.
 
 ---
 
@@ -367,6 +386,10 @@ If the inference host is **Ubuntu in WSL2** on a second Windows PC, prefer
 an SSH local forward and keep Ollama on WSL localhost. Public-safe commands
 and placeholders: [examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md).
 
+If the inference host is a **Halo-class AMD** box (future Phase 4), use the
+same SSH-first pattern. Public-safe notes:
+[examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md).
+
 ### 9.5 Sanity checks
 
 On the inference host:
@@ -596,13 +619,18 @@ OLLAMA_BASE_URL
 │   ├── cursor.mcp.json
 │   ├── vscode.mcp.json
 │   ├── claude.mcp.json
-│   └── downstairs-wsl-gpu.md        ← WSL GPU host via SSH (placeholders)
+│   ├── downstairs-wsl-gpu.md        ← WSL GPU host via SSH (placeholders)
+│   └── halo-ryzen-ai.md             ← future Halo-class AMD host (placeholders)
 ├── src/
 │   └── local_coding_slm/
 │       ├── server.py                ← stdio MCP server
 │       ├── ollama_client.py
 │       ├── envfile.py
 │       └── prompts.py
+├── docs/
+│   ├── roadmap.md                   ← current vs future phases
+│   ├── c4.md                        ← C4 context / container / component
+│   └── phase3-log.md
 ├── scripts/
 │   ├── run_mcp.sh                   ← project MCP entry (loads .env)
 │   ├── prove_acceptance.py
@@ -647,6 +675,24 @@ Track, even informally:
 
 Only after that, consider automatic task classification.
 
+### Phase 4 — Halo-class AMD host (future)
+
+Claim this only after Phase 3 has some numbers and the existing second
+NVIDIA/WSL host is in a known state (on, or explicitly abandoned).
+
+1. Treat Halo as another private Ollama host, not a second MCP product.
+2. Keep `local_*` tool names and `OLLAMA_*` variables.
+3. Prefer `ssh -L` to Halo localhost. Optional: private-interface bind
+   plus a workstation-only firewall. No public tunnels.
+4. Re-run A1–A7 and A11–A12 from the workstation. Run A4 (external
+   reachability must fail).
+5. After the starter pair is usable, benchmark larger official tags on
+   Halo unified memory. Record tok/s, time to first token, and peak
+   memory in a private note — not in git if the note identifies the
+   machine.
+
+Planning index: [docs/roadmap.md](docs/roadmap.md).
+
 ---
 
 ## 16. Acceptance tests
@@ -667,6 +713,7 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 | A10 | Cloud agents | Documented as unsupported; no private URL in repo Copilot MCP settings |
 | A11 | `git grep` for private IPs / usernames | No RFC1918 addresses except documented placeholders; no `@` emails |
 | A12 | `scripts/check_deployment_safety.py` | Loopback (or SSH-forward) URL, official tags, `.env` ignored, no wildcard listen |
+| A13 | Halo ROCm + `ollama ps` (Phase 4) | Accelerated placement on the Halo host; skip until that lab is claimed |
 
 ---
 

@@ -9,10 +9,16 @@ does bounded, mechanical generation on a private GPU host running
 
 - **[spec.md](spec.md)** — architecture, routing rules, Ollama setup, and
   Cursor / Copilot / Claude Code adapters.
+- **[docs/roadmap.md](docs/roadmap.md)** — current phases and the future
+  Halo host profile (planning only).
+- **[docs/c4.md](docs/c4.md)** — C4 context, container, and component
+  diagrams (Halo is the same containers, a later host).
 - **[examples/](examples/)** — public-safe client config templates. Copy them
   locally; put the real Ollama URL in your environment, not in git.
 - **[examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md)** —
   second GPU host in WSL over SSH, placeholders only.
+- **[examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md)** — future
+  AMD Halo-class Ollama host, placeholders only.
 
 ## What this repo is not
 
