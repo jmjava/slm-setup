@@ -3,7 +3,7 @@
 This is a public-safe record of secret and deployment-hygiene checks for
 `jmjava/slm-setup`. No secret values are included.
 
-## Full Git history
+## Current Git history
 
 Tool: Gitleaks 8.30.1, downloaded from the official
 [`gitleaks/gitleaks`](https://github.com/gitleaks/gitleaks) GitHub release.
@@ -11,11 +11,16 @@ Tool: Gitleaks 8.30.1, downloaded from the official
 Command shape:
 
 ```bash
-gitleaks detect --source . --no-banner --redact --verbose
+gitleaks detect \
+  --source /absolute/path/to/slm-setup \
+  --log-opts='--all' \
+  --no-banner --redact --verbose
 ```
 
-Result: **no leaks found** across 17 commits and approximately 160 KB of
-scanned Git content.
+Result at repository commit `277f6bd`: **no leaks found**. Gitleaks reported
+21 commit diffs and approximately 172.75 KB of Git content scanned. The
+repository contained 23 commits on `main` and 25 commits across all local refs;
+Gitleaks reports scanned diffs rather than the raw `git rev-list` count.
 
 ## GitHub secret scanning
 
@@ -23,6 +28,15 @@ The GitHub secret-scanning alerts API returned an empty list for the
 repository. No open or resolved alert metadata was present at scan time.
 
 ## Current tracked tree
+
+The committed `HEAD` tree was exported with `git archive` so ignored local
+model data and `.git` internals were excluded, then scanned with:
+
+```bash
+gitleaks dir /tmp/slm-tree-scan --no-banner --redact --verbose
+```
+
+Result: **no leaks found** across approximately 110.65 KB.
 
 Additional high-signal checks found:
 
