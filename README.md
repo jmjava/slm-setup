@@ -36,12 +36,13 @@ does bounded, mechanical generation on a private GPU host running
 ```
 IDE / CLI on the workstation
    premium agent  →  local-coding-slm MCP (stdio)
-                         →  http://<inference-host>:11434
+                         →  local Ollama URL
+                            (direct localhost or SSH local forward)
                               →  Ollama + local SLM
 ```
 
-Workstation and inference host can be the same machine or two machines on a
-private LAN.
+Workstation and inference host can be the same machine or two private machines
+connected through SSH local forwarding.
 
 ## Local lab (same machine)
 
@@ -104,8 +105,18 @@ the first checkout so it picks up the server.
 
 ## Security
 
-Keep Ollama on `127.0.0.1`. Prefer `ssh -L` to a second host instead of binding
-`0.0.0.0`. Do not port-forward 11434. Do not commit `.env` or model stores.
+Keep Ollama on `127.0.0.1`. Prefer an explicit workstation-only SSH forward to
+a second host instead of binding Ollama to `0.0.0.0`:
+
+```bash
+ssh -N -T -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@<inference-host>
+```
+
+Then set `OLLAMA_BASE_URL=http://127.0.0.1:11436` locally. Port `11436` is an
+example unused workstation port; remote Ollama remains on `11434`. Do not
+create a public tunnel or router port-forward. Do not commit `.env` or model
+stores.
 
 Open-weight models are a privacy win, not an integrity guarantee. **Qwen** is a
 model family (some tags are large LLMs). `qwen3.5:9b` is the starter SLM here.

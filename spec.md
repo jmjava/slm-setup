@@ -59,7 +59,7 @@ Claude).
 Cursor premium  ────┐
 Copilot premium ────┼──> local-coding-slm MCP (stdio on the workstation)
 Claude premium  ────┘             │
-                                  │ private LAN / localhost
+                                  │ localhost / SSH local forward
                                   ▼
                            Ollama HTTP API
                                   │
@@ -179,7 +179,7 @@ OLLAMA_NUM_CTX=16384
 
 When the inference host is a second machine, prefer an SSH local forward and
 keep `OLLAMA_BASE_URL` on the workstation set to
-`http://127.0.0.1:11434`. Use a direct private-host URL only for the optional
+`http://127.0.0.1:11436`. Use a direct private-host URL only for the optional
 firewalled LAN fallback in §9.3.
 
 ---
@@ -189,9 +189,10 @@ firewalled LAN fallback in §9.3.
 ### Cursor
 
 Cursor can use custom OpenAI-compatible endpoints via **Override OpenAI Base
-URL**. Those requests are assembled on Cursor's servers. A private LAN or
-`localhost` Ollama URL is therefore not reachable unless it is published as a
-public HTTPS endpoint.
+URL**. Those requests are assembled on Cursor's servers. The default hosted
+routing cannot reach a home-LAN or workstation `localhost` Ollama URL.
+Enterprise private-connectivity configurations are separate designs; making
+Ollama publicly reachable is outside this project.
 
 Cursor also has a **single** OpenAI base-URL override. Pointing it at Ollama
 fights with Cursor-native premium models.
@@ -204,17 +205,21 @@ models as-is. Add the local SLM as MCP tools.
 Copilot Agent in the IDE can call **local stdio MCP servers**. That is the
 supported equivalent: premium Copilot orchestrates, local tools generate.
 
-Copilot **cloud agent** (the GitHub-hosted agent that opens PRs from issues)
-runs on GitHub's runners. It cannot reach a private LAN Ollama host. Do not
-configure this MCP server in repository Copilot cloud-agent settings.
+Copilot **cloud agent** (the default GitHub-hosted agent that opens PRs from
+issues) runs on GitHub's runners, outside this home-LAN profile. Enterprise
+self-hosted runners can be connected to internal resources, but that is a
+different deployment. Do not configure this workstation MCP server in
+repository Copilot cloud-agent settings.
 
 ### Claude Code
 
 Claude Code supports local **stdio** MCP servers and project-scoped `.mcp.json`
 with `${VAR}` / `${VAR:-default}` expansion. That is the supported equivalent.
 
-Claude Code cloud / remote sessions also cannot see a private LAN host. Use
-this bridge from a local Claude Code session on the workstation.
+Anthropic-hosted Claude Code cloud sessions run outside this home-LAN profile.
+Organizations may instead configure self-hosted Claude environments; that is a
+separate deployment. Use this bridge from a local Claude Code session on the
+workstation.
 
 ---
 
@@ -339,17 +344,19 @@ forward a local port to Ollama through the inference host's existing SSH
 service:
 
 ```bash
-ssh -N -L 11434:127.0.0.1:11434 user@<inference-host>
+ssh -N -T -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@<inference-host>
 ```
 
 Then keep the workstation setting on loopback:
 
 ```bash
-OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_BASE_URL=http://127.0.0.1:11436
 ```
 
-The real SSH user and host stay in local configuration and must not be
-committed. Optional Ollama runtime settings:
+Here `11436` is an example unused workstation port, while remote Ollama stays
+on its own loopback port `11434`. The real SSH user and host stay in local
+configuration and must not be committed. Optional Ollama runtime settings:
 
 ```bash
 OLLAMA_CONTEXT_LENGTH=16384
@@ -466,8 +473,10 @@ Do not send secrets, .env files, or credentials to those tools.
 Cursor Agent uses MCP tools automatically when they are relevant. Users can
 also ask for a tool by name.
 
-**Cursor Cloud Agents** run on remote VMs and cannot reach a private LAN
-Ollama host. This MCP server is for the local/desktop Cursor session.
+Default **Cursor Cloud Agents** run on Cursor-managed remote VMs rather than
+the workstation. Cursor supports separately configured private connectivity,
+but this home-lab profile does not. This MCP server is for the local/desktop
+Cursor session.
 
 ### 10.2 GitHub Copilot (premium + MCP)
 
@@ -492,9 +501,10 @@ block. Same stdio command, env from the user shell.
 
 **Copilot cloud agent / code review (not supported for this server):**
 
-Those run on GitHub-hosted runners. A private Ollama URL is unreachable. Do
-not add `local-coding-slm` to the repository Settings → Copilot → MCP servers
-page.
+The default agents run on GitHub-hosted runners outside this home-LAN profile.
+Enterprise self-hosted runners are an exception, but they are not part of this
+design. Do not add this workstation `local-coding-slm` server to the repository
+Settings → Copilot → MCP servers page.
 
 ### 10.3 Claude Code (premium + MCP)
 
@@ -521,8 +531,9 @@ Claude Code prompts once before enabling project-scoped servers from
 
 Put the same routing paragraph from §10.1 in `CLAUDE.md` or a project skill.
 
-**Claude Code cloud / remote sessions** cannot reach a private LAN host. Use a
-local session on the workstation.
+**Anthropic-hosted Claude Code cloud sessions** run outside this home-LAN
+profile. Organization-configured self-hosted environments are an exception but
+are not part of this design. Use a local session on the workstation.
 
 ---
 
@@ -531,8 +542,8 @@ local session on the workstation.
 | Capability | Cursor desktop | Copilot IDE Agent | Claude Code local | Cursor Cloud Agent | Copilot cloud agent |
 | --- | --- | --- | --- | --- | --- |
 | Premium model as orchestrator | Yes | Yes | Yes | Yes | Yes |
-| Local stdio MCP on workstation | Yes | Yes | Yes | No | No |
-| Reach private LAN Ollama | Yes, via local MCP | Yes, via local MCP | Yes, via local MCP | No | No |
+| Local stdio MCP on workstation | Yes | Yes | Yes | Not on the workstation | Not on the workstation |
+| Reach this home-lab Ollama profile | Yes, via local MCP | Yes, via local MCP | Yes, via local MCP | Not configured | Not configured |
 | Project-shared public config | `.cursor/mcp.json` + env interpolation | `.vscode/mcp.json` + `inputs` | `.mcp.json` + `${VAR}` | n/a | n/a |
 | Treat Ollama as a first-class model in the picker | Not for private LAN | Separate Copilot+Ollama flows; not this spec | Can use Ollama directly, but this spec uses MCP | No | No |
 | OpenRouter required | No | No | No | No | No |
@@ -544,7 +555,9 @@ local session on the workstation.
 ### 12.1 Deployment
 
 - Prefer Ollama on **`127.0.0.1`**. Reach a second GPU host with
-  `ssh -L 11434:127.0.0.1:11434` (see `examples/downstairs-wsl-gpu.md`).
+  `ssh -N -T -o ExitOnForwardFailure=yes
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@<inference-host>` (see
+  `examples/downstairs-wsl-gpu.md`).
   Do **not** bind `0.0.0.0` unless you have a written reason.
 - **No public port forward.** No ngrok, Cloudflare Tunnel, or similar.
 - Do not send secrets, private keys, `.env` files, or credentials into MCP tool
@@ -664,8 +677,9 @@ local inference host. Phase 2 is the stdio MCP server in `src/local_coding_slm`.
 
 1. Install Ollama on the GPU machine (keep the current OS; no dual-boot).
 2. Pull the fast model; confirm GPU placement with `ollama ps`.
-3. Optionally expose LAN + firewall.
-4. `curl` `/api/tags` and `/api/chat` from the workstation.
+3. If it is a second host, prefer an SSH local forward to its loopback Ollama.
+   Use a restricted private-interface bind only as a fallback.
+4. `curl` `/api/tags` and `/api/chat` through the configured local URL.
 5. Pull the strong model and repeat one prompt.
 6. **Stop.** Do not build routing until the fast model feels usable.
 
@@ -699,8 +713,10 @@ NVIDIA/WSL host is in a known state (on, or explicitly abandoned).
 
 1. Treat Halo as another private Ollama host, not a second MCP product.
 2. Keep `local_*` tool names and `OLLAMA_*` variables.
-3. Prefer `ssh -L` to Halo localhost. Optional: private-interface bind
-   plus a workstation-only firewall. No public tunnels.
+3. Prefer `ssh -N -T -o ExitOnForwardFailure=yes
+   -L 127.0.0.1:11436:127.0.0.1:11434 user@<halo-host>` to Halo localhost.
+   Optional: private-interface bind plus a workstation-only firewall. No public
+   tunnels.
 4. Re-run A1–A7 and A11–A12 from the workstation. Run A4 (external
    reachability must fail).
 5. After the starter pair is usable, benchmark larger official tags on
@@ -727,9 +743,9 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 | A7 | Cursor Agent | Premium model calls a `local_*` tool on a mechanical prompt |
 | A8 | Copilot Agent (VS Code) | Same tool appears and runs |
 | A9 | Claude Code local | `claude mcp list` shows `local-coding-slm` connected |
-| A10 | Cloud agents | Documented as unsupported; no private URL in repo Copilot MCP settings |
+| A10 | Vendor-hosted cloud agents | This home-lab profile is not configured there; no private URL in repository MCP settings |
 | A11 | `git grep` for private IPs / usernames | No RFC1918 addresses except documented placeholders; no `@` emails |
-| A12 | `scripts/check_deployment_safety.py` | Loopback (or SSH-forward) URL, official tags, `.env` ignored, no wildcard listen |
+| A12 | `scripts/check_deployment_safety.py` | Loopback (or SSH-forward) URL, official tags, `.env` ignored, and no wildcard listener on the workstation; verify a remote host separately |
 | A13 | Halo ROCm + `ollama ps` (Phase 4) | Accelerated placement on the Halo host; skip until that lab is claimed |
 
 ---
@@ -743,7 +759,7 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 - Buying more system RAM solely to run larger SLMs (VRAM upgrade is the
   lever if 16 GB becomes the bottleneck).
 - Automatic multi-model classifiers (phase 3).
-- Cloud-agent access to the private GPU.
+- Cloud-agent access to the private GPU in this home-lab profile.
 
 ---
 

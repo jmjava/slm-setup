@@ -45,9 +45,12 @@ Public-safe notes: [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
    chat before selecting larger models.
 2. Pull the starter pair. Leave larger coding tags for a later benchmark.
 3. Reach the API from the workstation. Prefer
-   `ssh -L 11434:127.0.0.1:11434` and keep Ollama on Halo localhost.
+   `ssh -N -T -o ExitOnForwardFailure=yes
+   -L 127.0.0.1:11436:127.0.0.1:11434 user@<halo-host>` and keep Ollama on
+   Halo localhost. Use any unused workstation port in place of `11436`.
    A private-interface bind plus a workstation-only firewall is optional.
-4. Point gitignored `.env` at that URL. Reload desktop MCP. Re-run
+4. Point gitignored `.env` at `http://127.0.0.1:11436`. Reload desktop MCP.
+   Re-run
    `scripts/check_deployment_safety.py`.
 5. Repeat acceptance **A1–A7** and **A11–A12**. Run **A4** (the workstation
    succeeds through SSH; an unauthorized LAN client fails). **A8/A9** only if
@@ -91,5 +94,5 @@ path needs them:
 
 - OpenRouter or Cursor OpenAI-base-URL override
 - Public Ollama, ngrok, Cloudflare Tunnel
-- Cloud-agent access to the private GPU
+- Cloud-agent access to the private GPU in this home-lab profile
 - A second MCP server just for Halo

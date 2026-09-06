@@ -18,21 +18,25 @@ Ollama host changes. See [docs/roadmap.md](../docs/roadmap.md) Phase 4.
 Keep Ollama on **Halo localhost**. From the workstation, forward the API:
 
 ```bash
-ssh -N -L 11434:127.0.0.1:11434 user@<halo-host>
+ssh -N -T -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@<halo-host>
 ```
 
 Then on the workstation (gitignored `.env`):
 
 ```
-OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_BASE_URL=http://127.0.0.1:11436
 ```
 
-`<halo-host>` is a name you already use. Do not scan for it.
+`11436` is an example unused port on the workstation. `11434` is Ollama's
+loopback port on Halo. `<halo-host>` is a name you already use. Do not scan
+for it.
 
 Documentation stand-ins (not a real household):
 
 ```
-ssh -N -L 11434:127.0.0.1:11434 user@halo-private-host.example
+ssh -N -T -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@halo-private-host.example
 ```
 
 `halo-private-host.example` and `192.0.2.0/24` are examples. They are
@@ -50,8 +54,9 @@ Workstation `.env` in that case (placeholder only):
 # OLLAMA_BASE_URL=http://<halo-host>:11434
 ```
 
-The deployment checker warns on a private LAN URL and fails on a public
-or tunnel URL. Re-run it after any `.env` change.
+The workstation deployment checker warns on a private LAN URL and fails on a
+public or tunnel URL. It can inspect only listeners on the workstation; verify
+the remote Ollama bind separately on Halo. Re-run it after any `.env` change.
 
 ## On the Halo (when this phase is claimed)
 
@@ -64,8 +69,10 @@ or tunnel URL. Re-run it after any `.env` change.
 3. Leave Ollama on `127.0.0.1:11434` if you use the SSH forward above.
 4. Treat "no route" as host down before changing addresses.
 
-Do **not** port-forward 11434 through a public router. Do not add Halo
-to Cursor's model picker. Cloud agents cannot reach this host.
+Do **not** port-forward 11434 through a public router. Do not add Halo to
+Cursor's model picker. Default vendor-hosted cloud agents are not connected to
+this home-lab host; private-connectivity or self-hosted enterprise
+configurations are separate designs.
 
 ## What not to commit
 

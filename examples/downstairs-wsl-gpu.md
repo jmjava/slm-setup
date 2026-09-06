@@ -13,23 +13,27 @@ address in a gitignored `.env` or `*.local.md`. Never commit them.
 Keep Ollama on **WSL localhost**. From the workstation, forward the API:
 
 ```bash
-ssh -N -p <ssh-port> -L 11434:127.0.0.1:11434 user@<wsl-host>
+ssh -N -T -o ExitOnForwardFailure=yes -p <ssh-port> \
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@<wsl-host>
 ```
 
 Then on the workstation (gitignored `.env`):
 
 ```
-OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_BASE_URL=http://127.0.0.1:11436
 ```
 
-`<wsl-host>` is a name or address you already use. Do not scan for it.
+`11436` is an example unused port on the workstation. `11434` is Ollama's
+loopback port inside WSL. `<wsl-host>` is a name or address you already use.
+Do not scan for it.
 `<ssh-port>` is often not 22 when Windows already owns port 22 — use
 whatever `ssh` you already use to reach that WSL.
 
 Documentation stand-ins (not a real household):
 
 ```
-ssh -N -p 2222 -L 11434:127.0.0.1:11434 user@wsl-gpu.example
+ssh -N -T -o ExitOnForwardFailure=yes -p 2222 \
+  -L 127.0.0.1:11436:127.0.0.1:11434 user@wsl-gpu.example
 ```
 
 `wsl-gpu.example` and `192.0.2.0/24` are examples. They are not this lab.
