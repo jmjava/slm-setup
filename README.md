@@ -60,7 +60,7 @@ private LAN.
    .venv/bin/pip install -e .
    ```
 
-5. Unit tests (no GPU required):
+5. Unit tests (no GPU required; Ollama HTTP calls are mocked):
 
    ```bash
    PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
@@ -72,11 +72,25 @@ private LAN.
    PYTHONPATH=src .venv/bin/python scripts/check_deployment_safety.py
    ```
 
-7. Live acceptance for the MCP tools (needs Ollama + the fast model):
+7. Live acceptance for MCP discovery, status, and test generation (needs the
+   configured Ollama runtime and fast model):
 
    ```bash
    .venv/bin/python scripts/prove_acceptance.py
    ```
+
+8. Live semantic refactor acceptance (calls the real `local_refactor`, parses
+   and executes its generated module, and checks behavior preservation):
+
+   ```bash
+   .venv/bin/python scripts/prove_refactor_acceptance.py --model fast
+   .venv/bin/python scripts/prove_refactor_acceptance.py --model strong
+   ```
+
+The unit suite proves deterministic client and safety behavior. The live
+acceptance scripts are the evidence that the stdio MCP server can reach the
+configured Ollama runtime and produce usable output; do not describe the unit
+suite as exercising Ollama.
 
 Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot
 uses `.vscode/mcp.json`. Claude Code uses `.mcp.json`. Reload the client after
