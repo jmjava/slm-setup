@@ -13,6 +13,8 @@ does bounded, mechanical generation on a private GPU host running
   Halo host profile (planning only).
 - **[docs/c4.md](docs/c4.md)** — C4 context, container, and component
   diagrams (Halo is the same containers, a later host).
+- **[docs/local-acceptance-results-2026-09-06.md](docs/local-acceptance-results-2026-09-06.md)**
+  — dated unit, live MCP, and semantic-refactor results with limitations.
 - **[examples/](examples/)** — public-safe client config templates. Copy them
   locally; put the real Ollama URL in your environment, not in git.
 - **[examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md)** —
@@ -90,7 +92,9 @@ private LAN.
 The unit suite proves deterministic client and safety behavior. The live
 acceptance scripts are the evidence that the stdio MCP server can reach the
 configured Ollama runtime and produce usable output; do not describe the unit
-suite as exercising Ollama.
+suite as exercising Ollama. See the dated
+[local acceptance results](docs/local-acceptance-results-2026-09-06.md) for
+observations, retries, and limits on what these checks establish.
 
 Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot
 uses `.vscode/mcp.json`. Claude Code uses `.mcp.json`. Reload the client after

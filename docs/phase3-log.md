@@ -3,6 +3,9 @@
 Informal track of local-coding-slm tool calls. Do not put hostnames, LAN
 IPs, or secrets here.
 
+Reproducible commands, complete 2026-09-06 observations, and limitations:
+[local-acceptance-results-2026-09-06.md](local-acceptance-results-2026-09-06.md).
+
 | Date | Tool | Model | Task | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
 | 2026-09-04 | local_generate_tests | fast | unittest for `merge_dotenv` | accepted with trim | Dropped one truncated test; quoted-value case kept; applied as `tests/test_envfile.py` |

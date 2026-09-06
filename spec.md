@@ -673,6 +673,11 @@ Track, even informally:
 - Escalation rate to the premium model
 - Rough premium-token savings
 
+Dated baseline evidence:
+[docs/local-acceptance-results-2026-09-06.md](docs/local-acceptance-results-2026-09-06.md).
+It distinguishes mocked unit tests from live Ollama/MCP checks and states the
+limits of the current single-file refactor case.
+
 Only after that, consider automatic task classification.
 
 ### Phase 4 — Halo-class AMD host (future)
