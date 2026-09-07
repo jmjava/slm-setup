@@ -17,14 +17,15 @@ from local_coding_slm.eval.cases import (
     WHITESPACE_NESTED,
     WHITESPACE_NO_FENCE,
 )
+from local_coding_slm.eval.cases_extended import OBSERVED_FIRST
 from local_coding_slm.ollama_client import DEFAULT_FAST_MODEL, DEFAULT_STRONG_MODEL
 
 
 def infer_case_id(user: str) -> str | None:
-    for case in CASES:
-        if case.task and case.task in user:
-            return case.id
-    return None
+    matches = [case for case in CASES if case.task and case.task in user]
+    if not matches:
+        return None
+    return max(matches, key=lambda case: len(case.task)).id
 
 
 def scripted_content(case_id: str, model_choice: str, visit: int, profile: str) -> str:
@@ -34,14 +35,18 @@ def scripted_content(case_id: str, model_choice: str, visit: int, profile: str) 
         return golden
     if profile != "observed":
         raise ValueError(f"unknown stub profile {profile!r}")
-    if case_id == "whitespace_extract_vague" and model_choice == "fast":
+    # These stay wrong for every fast call so the policy must escalate to strong.
+    if model_choice == "fast" and case_id == "whitespace_extract_vague":
         return WHITESPACE_NESTED
-    if case_id == "whitespace_extract" and model_choice == "fast" and visit == 1:
-        return WHITESPACE_NO_FENCE
-    if case_id == "multi_file_rename" and model_choice == "fast" and visit == 1:
-        return MULTI_FILE_PARTIAL
-    if case_id == "test_add_execute" and model_choice == "fast":
+    if model_choice == "fast" and case_id == "test_add_execute":
         return TEST_ADD_SHAPE_ONLY
+    first_fail = {
+        "whitespace_extract": WHITESPACE_NO_FENCE,
+        "multi_file_rename": MULTI_FILE_PARTIAL,
+        **OBSERVED_FIRST,
+    }
+    if model_choice == "fast" and visit == 1 and case_id in first_fail:
+        return first_fail[case_id]
     return golden
 
 

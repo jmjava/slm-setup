@@ -9,6 +9,17 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
+from local_coding_slm.eval.cases_extended import (
+    EXTENDED_CASES,
+    EXTENDED_GOLDEN,
+    EXTRACT_PARSER_NESTED,
+    EXTRACT_PARSER_NO_STRIP,
+    IMPLEMENT_CLAMP_NO_HI,
+    MOVE_FUNCTION_PARTIAL,
+    SPLIT_PIPELINE_MONOLITH,
+    EXPLAIN_CLAMP_VAGUE,
+    REVIEW_LOGIN_LGTM,
+)
 from local_coding_slm.eval.score import BehaviorCheck, EvalCase
 
 WHITESPACE_SOURCE = """\
@@ -307,6 +318,8 @@ CASES: tuple[EvalCase, ...] = (
     ),
 )
 
+SEED_CASE_IDS: tuple[str, ...] = tuple(case.id for case in CASES)
+CASES = CASES + EXTENDED_CASES
 CASES_BY_ID = {case.id: case for case in CASES}
 
 GOLDEN_FOR_CASE = {
@@ -314,6 +327,7 @@ GOLDEN_FOR_CASE = {
     "whitespace_extract_vague": WHITESPACE_GOLDEN,
     "multi_file_rename": MULTI_FILE_GOLDEN,
     "test_add_execute": TEST_ADD_GOLDEN,
+    **EXTENDED_GOLDEN,
 }
 
 
@@ -384,5 +398,60 @@ FIXTURES: tuple[Fixture, ...] = (
         TEST_ADD_SHAPE_ONLY,
         False,
         "behavior",
+    ),
+    Fixture("move_function_golden", "move_function_imports", GOLDEN_FOR_CASE["move_function_imports"], True),
+    Fixture(
+        "move_function_partial",
+        "move_function_imports",
+        MOVE_FUNCTION_PARTIAL,
+        False,
+        "format",
+    ),
+    Fixture("extract_parser_golden", "extract_shared_parser", GOLDEN_FOR_CASE["extract_shared_parser"], True),
+    Fixture(
+        "extract_parser_nested",
+        "extract_shared_parser",
+        EXTRACT_PARSER_NESTED,
+        False,
+        "structure",
+    ),
+    Fixture(
+        "extract_parser_no_strip",
+        "extract_shared_parser",
+        EXTRACT_PARSER_NO_STRIP,
+        False,
+        "behavior",
+    ),
+    Fixture("split_pipeline_golden", "split_pipeline", GOLDEN_FOR_CASE["split_pipeline"], True),
+    Fixture(
+        "split_pipeline_monolith",
+        "split_pipeline",
+        SPLIT_PIPELINE_MONOLITH,
+        False,
+        "format",
+    ),
+    Fixture("implement_clamp_golden", "implement_clamp", GOLDEN_FOR_CASE["implement_clamp"], True),
+    Fixture(
+        "implement_clamp_no_hi",
+        "implement_clamp",
+        IMPLEMENT_CLAMP_NO_HI,
+        False,
+        "behavior",
+    ),
+    Fixture("explain_clamp_golden", "explain_clamp", GOLDEN_FOR_CASE["explain_clamp"], True),
+    Fixture(
+        "explain_clamp_vague",
+        "explain_clamp",
+        EXPLAIN_CLAMP_VAGUE,
+        False,
+        "structure",
+    ),
+    Fixture("review_login_golden", "review_login", GOLDEN_FOR_CASE["review_login"], True),
+    Fixture(
+        "review_login_lgtm",
+        "review_login",
+        REVIEW_LOGIN_LGTM,
+        False,
+        "structure",
     ),
 )

@@ -19,6 +19,8 @@ does bounded, mechanical generation on a private GPU host running
   scoring (transport / format / structure / behavior) and the committed
   fixture corpus. Cloud Agents can run the fixtures; live Ollama stays on
   the workstation.
+- **[docs/cloud-orchestrator-results-2026-09-07.md](docs/cloud-orchestrator-results-2026-09-07.md)**
+  — dated Cloud Agent run of the stub corpus and apply gate (no GPU).
 - **[docs/security-scan-results-2026-09-06.md](docs/security-scan-results-2026-09-06.md)**
   — dated Gitleaks, GitHub alert, tracked-tree, and deployment-safety results.
 - **[examples/](examples/)** — public-safe client config templates. Copy them
@@ -77,7 +79,11 @@ connected through SSH local forwarding.
    .venv/bin/python scripts/run_eval.py
    .venv/bin/python scripts/run_harness.py --backend stub --profile observed --out eval-runs/observed
    .venv/bin/python scripts/run_orchestration.py
+   .venv/bin/python scripts/run_harness.py --backend stub --profile golden --orchestrate
    ```
+
+   GitHub Actions (`.github/workflows/tests.yml`) runs the same no-GPU path
+   on push and pull request.
 
 6. Deployment safety checks (no GPU required; inspects this host only):
 

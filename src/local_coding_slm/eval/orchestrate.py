@@ -192,6 +192,20 @@ def run_local_loop(
         attempts.append(LocalAttempt(record=record, text=text, scored=scored))
 
 
+def finish_delegated_job(
+    job: OrchestrationJob,
+    attempts: list[LocalAttempt],
+    verdict: ReviewVerdict | None,
+) -> JobResult:
+    """Apply gate after local attempts (scripted or MCP) already ran."""
+    decision = route(job.signals)
+    if decision.action != "delegate":
+        raise ValueError(f"{job.id}: finish_delegated_job requires a delegated route")
+    last = attempts[-1] if attempts else None
+    apply = decide_apply(delegated=True, last=last, verdict=verdict)
+    return _result(job, decision, apply, attempts, verdict)
+
+
 def run_job(
     job: OrchestrationJob,
     *,

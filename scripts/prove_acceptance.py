@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Run A5/A6 against the local stdio MCP server. Loads repo-root .env."""
+"""A5/A6 against stdio MCP. A6 executes generated tests via the eval scorer."""
 
 from __future__ import annotations
 
@@ -13,14 +12,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from local_coding_slm.eval.acceptance import score_a6  # noqa: E402
 from local_coding_slm.server import _load_dotenv  # noqa: E402
 
 _load_dotenv()
 
 from mcp import ClientSession, StdioServerParameters  # noqa: E402
 from mcp.client.stdio import stdio_client  # noqa: E402
-
-TINY_FN = "def add(a: int, b: int) -> int:\n    return a + b\n"
 
 
 async def _run() -> int:
@@ -62,18 +60,18 @@ async def _run() -> int:
                 print("FAIL A5 local_status")
                 return 1
 
+            from local_coding_slm.eval.cases import CASES_BY_ID
+
+            case = CASES_BY_ID["test_add_execute"]
             tests = await session.call_tool(
                 "local_generate_tests",
                 {
-                    "task": (
-                        "Write pytest unit tests for add(). Cover two positives "
-                        "and one negative. Return a single fenced file."
-                    ),
-                    "files": [{"path": "add.py", "content": TINY_FN}],
-                    "language": "python",
-                    "style": "pytest",
+                    "task": case.task,
+                    "files": list(case.files),
+                    "language": case.language,
+                    "style": case.style,
                     "model": "fast",
-                    "max_tokens": 400,
+                    "max_tokens": case.max_tokens,
                 },
             )
             tests_text = "".join(
@@ -81,9 +79,13 @@ async def _run() -> int:
             )
             print("A6")
             print(tests_text)
-            lowered = tests_text.lower()
-            if tests_text.startswith("ERROR:") or "def test" not in lowered:
-                print("FAIL A6 local_generate_tests")
+            result = score_a6(tests_text)
+            for layer in result.layers:
+                print(f"  {layer.status:4} {layer.name}: {layer.message}")
+            if not result.passed:
+                first = result.first_failure
+                extra = f" stop={first.name}" if first else ""
+                print(f"FAIL A6 local_generate_tests{extra}")
                 return 1
     print("PASS A5 A6")
     return 0
