@@ -73,6 +73,14 @@ class FixtureCorpusTests(unittest.TestCase):
         self.assertEqual(result.layer("behavior").status, "skip")
         self.assertIn("hi", result.layer("structure").message)
 
+    def test_explain_and_review_are_prose_cases(self) -> None:
+        explain = CASES_BY_ID["explain_clamp"]
+        review = CASES_BY_ID["review_login"]
+        self.assertFalse(explain.expect_fences)
+        self.assertFalse(review.expect_fences)
+        self.assertEqual(explain.tool, "local_explain")
+        self.assertEqual(review.tool, "local_review")
+
     def test_move_partial_is_format_not_behavior(self) -> None:
         case = CASES_BY_ID["move_function_imports"]
         partial = next(item for item in FIXTURES if item.name == "move_function_partial")

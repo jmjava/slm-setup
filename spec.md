@@ -238,7 +238,7 @@ premium agent decides whether to apply edits.
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `task` | string | yes | What to produce. Bounded input. |
-| `files` | array of `{ path, content }` | no | Snippets the premium agent chooses to send. Not a full-repo dump. |
+| `files` | array of `{ path, content }` | no | Snippets the premium agent chooses to send. Not a full-repo dump. The server refuses `.env` / private-key / token blobs, more than 12 files, or `max_tokens` above 8192 before calling Ollama. |
 | `language` | string | no | Hint, e.g. `java`, `typescript`. |
 | `style` | string | no | Short conventions: test framework, naming, etc. |
 | `model` | `fast` \| `strong` | no | Default `fast`. |

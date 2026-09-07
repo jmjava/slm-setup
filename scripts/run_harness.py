@@ -67,6 +67,7 @@ def main() -> None:
                     "source": item.apply_source,
                     "models": list(item.local_models),
                     "review": item.review_decision,
+                    "local_review_notes_chars": len(item.local_review_notes),
                 }
                 for item in results
             ]

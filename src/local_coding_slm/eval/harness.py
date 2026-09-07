@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from local_coding_slm.eval.cases import CASES, EvalCase
@@ -171,6 +172,10 @@ async def _run_orchestrated_job(
         return run_job(job)
     if job.eval_case is None:
         raise ValueError(f"{job.id}: delegated jobs need an eval_case")
+    notes = job.local_review_notes
+    if job.signals.security_sensitive and not notes:
+        notes = await _call_local_review(session, job.eval_case)
+        job = replace(job, local_review_notes=notes)
     attempts = await _run_local_mcp(
         session,
         job.eval_case,
@@ -200,6 +205,25 @@ async def _run_local_mcp(
         )
         attempts.append(item)
         records.append(item.record)
+
+
+async def _call_local_review(session: object, case: EvalCase) -> str:
+    """Cheap first-pass notes for the premium packet. Not an apply."""
+    payload = {
+        "task": (
+            "First-pass review only. Flag obvious null, auth, secret, and "
+            "error-handling gaps. Do not rewrite.\n\nOriginal task:\n"
+            + case.task
+        ),
+        "files": list(case.files),
+        "language": case.language,
+        "model": "fast",
+        "max_tokens": 400,
+    }
+    tool = await session.call_tool("local_review", payload)  # type: ignore[attr-defined]
+    return "".join(
+        block.text for block in tool.content if getattr(block, "text", None)
+    )
 
 
 async def _one_attempt(

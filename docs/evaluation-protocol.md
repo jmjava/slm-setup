@@ -148,7 +148,14 @@ file. They prove the state machine the agent is supposed to follow.
 The same gate runs after **real stdio MCP** calls when you pass
 `--orchestrate`. Stub Ollama still supplies the worker text. Keep jobs
 never call `local_*`. Accept / rewrite / reject then run on the scored
-candidate.
+candidate. Security-sensitive delegated jobs first call `local_review`
+and attach those notes to the premium packet; that still cannot approve.
+
+The MCP server also refuses secret filenames, private-key / token
+blobs, oversized file sets, and `max_tokens` above 8192 **before**
+calling Ollama. That is defense in depth if a client skips the eval
+router. A function that only mentions `password` is not treated as a
+secret blob.
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m unittest tests.test_eval_orchestrate tests.test_eval_mcp_orchestrate -v

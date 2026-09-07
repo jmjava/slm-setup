@@ -77,6 +77,7 @@ class JobResult:
     review_decision: str | None
     review_reviewer: str | None
     local_passed: bool | None
+    local_review_notes: str = ""
 
 
 class ScriptedLocal:
@@ -321,4 +322,5 @@ def _result(
         review_decision=None if verdict is None else verdict.decision,
         review_reviewer=None if verdict is None else verdict.reviewer,
         local_passed=last_passed,
+        local_review_notes=job.local_review_notes,
     )
