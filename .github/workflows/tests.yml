@@ -26,3 +26,5 @@ jobs:
         run: python scripts/run_harness.py --backend stub --profile golden --fast-ms 1 --strong-ms 1
       - name: Stub MCP + apply gate
         run: python scripts/run_harness.py --backend stub --profile golden --orchestrate --fast-ms 1 --strong-ms 1
+      - name: Stub MCP observed failover
+        run: python scripts/run_harness.py --backend stub --profile observed --fast-ms 1 --strong-ms 1

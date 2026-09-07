@@ -78,6 +78,19 @@ class McpOrchestratorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(notes.case_id, "review_login")
         self.assertEqual(notes.outcome, "rejected")
         self.assertFalse(notes.applied)
+        self.assertTrue(notes.local_review_notes)
+
+    async def test_security_job_runs_local_review_prelude(self) -> None:
+        results = await run_orchestrated_campaign(
+            backend="stub",
+            profile="golden",
+            job_ids=["mcp_reject_security"],
+            fast_ms=1,
+            strong_ms=1,
+        )
+        item = results[0]
+        self.assertGreater(len(item.local_review_notes), 0)
+        self.assertEqual(item.outcome, "rejected")
 
     async def test_observed_move_repairs_then_accepts(self) -> None:
         results = await run_orchestrated_campaign(

@@ -12,6 +12,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from local_coding_slm.payload import inspect_payload
+
 
 @dataclass(frozen=True)
 class RouteSignals:
@@ -45,17 +47,8 @@ def mechanical_signals(**overrides: bool) -> RouteSignals:
 
 
 def payload_block_reason(files: Sequence[dict[str, str]] | None) -> str | None:
-    """Refuse to send secrets or credential files to local_*."""
-    for item in files or ():
-        path = (item.get("path") or "").replace("\\", "/").lower()
-        name = path.rsplit("/", 1)[-1]
-        if name == ".env.example":
-            continue
-        if name == ".env" or name.startswith(".env."):
-            return "secrets_file"
-        if name in {"credentials.json", "id_rsa", "id_rsa.pub"}:
-            return "secrets_file"
-    return None
+    """Refuse secrets, credential files, and oversized snippets."""
+    return inspect_payload(files)
 
 
 def route(

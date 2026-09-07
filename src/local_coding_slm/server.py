@@ -19,6 +19,7 @@ from local_coding_slm.ollama_client import (  # noqa: E402
     format_user_task,
     status_report,
 )
+from local_coding_slm.payload import inspect_payload, refusal_message  # noqa: E402
 from local_coding_slm.prompts import SYSTEM_PROMPTS  # noqa: E402
 
 
@@ -64,6 +65,9 @@ def _run_tool(
 ) -> str:
     if not task or not task.strip():
         return "ERROR: task is required"
+    blocked = inspect_payload(files, max_tokens=max_tokens)
+    if blocked:
+        return refusal_message(blocked)
     user = format_user_task(task, files=files, language=language, style=style)
     try:
         return chat(
