@@ -84,6 +84,7 @@ class EvalCase:
     expect_fences: bool = True
     required_phrases: tuple[str, ...] = ()
     max_tokens: int = 700
+    category: str = "other"
 
 
 def score_candidate(text: str, case: EvalCase) -> EvalResult:

@@ -281,6 +281,7 @@ CASES: tuple[EvalCase, ...] = (
         style="Keep the code minimal and preserve type hints.",
         required_top_level=("_normalize_whitespace", "normalize_user"),
         behavior=WHITESPACE_CHECKS,
+        category="extract",
     ),
     EvalCase(
         id="whitespace_extract_vague",
@@ -290,6 +291,7 @@ CASES: tuple[EvalCase, ...] = (
         style="Keep the code minimal and preserve type hints.",
         required_top_level=("_normalize_whitespace", "normalize_user"),
         behavior=WHITESPACE_CHECKS,
+        category="prompt_contract",
     ),
     EvalCase(
         id="multi_file_rename",
@@ -306,6 +308,7 @@ CASES: tuple[EvalCase, ...] = (
             BehaviorCheck("use", "total", ([1, 2, 3],), 6),
             BehaviorCheck("use", "total", ([],), 0),
         ),
+        category="rename",
     ),
     EvalCase(
         id="test_add_execute",
@@ -315,11 +318,27 @@ CASES: tuple[EvalCase, ...] = (
         style="pytest",
         extra_structure=_has_test_functions,
         behavior_fn=_run_generated_tests,
+        category="tests",
     ),
 )
 
 SEED_CASE_IDS: tuple[str, ...] = tuple(case.id for case in CASES)
-CASES = CASES + EXTENDED_CASES
+
+from local_coding_slm.eval.cases_more import (  # noqa: E402
+    EXTRACT_DATACLASS_NESTED,
+    EXPLAIN_MEAN_VAGUE,
+    IMPLEMENT_MEDIAN_FIRST,
+    IMPLEMENT_SLUG_NO_HYPHEN,
+    MORE_CASES,
+    MORE_GOLDEN,
+    REVIEW_DIVZERO_LGTM,
+    RENAME_THREE_PARTIAL,
+    SPLIT_SETTINGS_MONOLITH,
+    TEST_CLAMP_SHAPE_ONLY,
+    TEST_MEDIAN_SHAPE_ONLY,
+)
+
+CASES = CASES + EXTENDED_CASES + MORE_CASES
 CASES_BY_ID = {case.id: case for case in CASES}
 
 GOLDEN_FOR_CASE = {
@@ -328,6 +347,7 @@ GOLDEN_FOR_CASE = {
     "multi_file_rename": MULTI_FILE_GOLDEN,
     "test_add_execute": TEST_ADD_GOLDEN,
     **EXTENDED_GOLDEN,
+    **MORE_GOLDEN,
 }
 
 
@@ -451,6 +471,78 @@ FIXTURES: tuple[Fixture, ...] = (
         "review_login_lgtm",
         "review_login",
         REVIEW_LOGIN_LGTM,
+        False,
+        "structure",
+    ),
+    Fixture("extract_dataclass_golden", "extract_dataclass", GOLDEN_FOR_CASE["extract_dataclass"], True),
+    Fixture(
+        "extract_dataclass_nested",
+        "extract_dataclass",
+        EXTRACT_DATACLASS_NESTED,
+        False,
+        "structure",
+    ),
+    Fixture("rename_three_golden", "rename_three_files", GOLDEN_FOR_CASE["rename_three_files"], True),
+    Fixture(
+        "rename_three_partial",
+        "rename_three_files",
+        RENAME_THREE_PARTIAL,
+        False,
+        "format",
+    ),
+    Fixture("split_settings_golden", "split_settings", GOLDEN_FOR_CASE["split_settings"], True),
+    Fixture(
+        "split_settings_monolith",
+        "split_settings",
+        SPLIT_SETTINGS_MONOLITH,
+        False,
+        "format",
+    ),
+    Fixture("implement_slug_golden", "implement_slug", GOLDEN_FOR_CASE["implement_slug"], True),
+    Fixture(
+        "implement_slug_no_hyphen",
+        "implement_slug",
+        IMPLEMENT_SLUG_NO_HYPHEN,
+        False,
+        "behavior",
+    ),
+    Fixture("implement_median_golden", "implement_median", GOLDEN_FOR_CASE["implement_median"], True),
+    Fixture(
+        "implement_median_first",
+        "implement_median",
+        IMPLEMENT_MEDIAN_FIRST,
+        False,
+        "behavior",
+    ),
+    Fixture("test_clamp_golden", "test_clamp_execute", GOLDEN_FOR_CASE["test_clamp_execute"], True),
+    Fixture(
+        "test_clamp_wrong_assert",
+        "test_clamp_execute",
+        TEST_CLAMP_SHAPE_ONLY,
+        False,
+        "behavior",
+    ),
+    Fixture("test_median_golden", "test_median_execute", GOLDEN_FOR_CASE["test_median_execute"], True),
+    Fixture(
+        "test_median_wrong_assert",
+        "test_median_execute",
+        TEST_MEDIAN_SHAPE_ONLY,
+        False,
+        "behavior",
+    ),
+    Fixture("explain_mean_golden", "explain_mean", GOLDEN_FOR_CASE["explain_mean"], True),
+    Fixture(
+        "explain_mean_vague",
+        "explain_mean",
+        EXPLAIN_MEAN_VAGUE,
+        False,
+        "structure",
+    ),
+    Fixture("review_divzero_golden", "review_divzero", GOLDEN_FOR_CASE["review_divzero"], True),
+    Fixture(
+        "review_divzero_lgtm",
+        "review_divzero",
+        REVIEW_DIVZERO_LGTM,
         False,
         "structure",
     ),

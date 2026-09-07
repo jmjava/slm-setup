@@ -18,6 +18,7 @@ from local_coding_slm.eval.cases import (
     WHITESPACE_NO_FENCE,
 )
 from local_coding_slm.eval.cases_extended import OBSERVED_FIRST
+from local_coding_slm.eval.cases_more import MORE_OBSERVED, MORE_PERSISTENT_FAST
 from local_coding_slm.ollama_client import DEFAULT_FAST_MODEL, DEFAULT_STRONG_MODEL
 
 
@@ -36,14 +37,18 @@ def scripted_content(case_id: str, model_choice: str, visit: int, profile: str) 
     if profile != "observed":
         raise ValueError(f"unknown stub profile {profile!r}")
     # These stay wrong for every fast call so the policy must escalate to strong.
-    if model_choice == "fast" and case_id == "whitespace_extract_vague":
-        return WHITESPACE_NESTED
-    if model_choice == "fast" and case_id == "test_add_execute":
-        return TEST_ADD_SHAPE_ONLY
+    persistent_fast = {
+        "whitespace_extract_vague": WHITESPACE_NESTED,
+        "test_add_execute": TEST_ADD_SHAPE_ONLY,
+        **MORE_PERSISTENT_FAST,
+    }
+    if model_choice == "fast" and case_id in persistent_fast:
+        return persistent_fast[case_id]
     first_fail = {
         "whitespace_extract": WHITESPACE_NO_FENCE,
         "multi_file_rename": MULTI_FILE_PARTIAL,
         **OBSERVED_FIRST,
+        **MORE_OBSERVED,
     }
     if model_choice == "fast" and visit == 1 and case_id in first_fail:
         return first_fail[case_id]

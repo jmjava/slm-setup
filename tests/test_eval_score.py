@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import unittest
 
-from local_coding_slm.eval.cases import CASES_BY_ID, FIXTURES, SEED_CASE_IDS
+from local_coding_slm.eval.cases import CASES, CASES_BY_ID, FIXTURES, SEED_CASE_IDS
 from local_coding_slm.eval.score import score_candidate
 
 
 class FixtureCorpusTests(unittest.TestCase):
     def test_every_fixture_matches_expected_layer(self) -> None:
-        self.assertGreaterEqual(len(FIXTURES), 16)
+        self.assertGreaterEqual(len(FIXTURES), 40)
         self.assertGreaterEqual(len(SEED_CASE_IDS), 4)
+        self.assertGreaterEqual(len(CASES), 20)
         for fixture in FIXTURES:
             with self.subTest(fixture=fixture.name):
                 case = CASES_BY_ID[fixture.case_id]
@@ -51,8 +52,6 @@ class FixtureCorpusTests(unittest.TestCase):
         self.assertNotEqual(precise.task, vague.task)
 
     def test_corpus_covers_all_generation_tools(self) -> None:
-        from local_coding_slm.eval.cases import CASES
-
         tools = {case.tool for case in CASES}
         self.assertTrue(
             {
@@ -86,6 +85,48 @@ class FixtureCorpusTests(unittest.TestCase):
         partial = next(item for item in FIXTURES if item.name == "move_function_partial")
         result = score_candidate(partial.text, case)
         self.assertEqual(result.layer("format").status, "fail")
+        self.assertEqual(result.layer("behavior").status, "skip")
+
+    def test_third_wave_vague_shares_checker(self) -> None:
+        precise = CASES_BY_ID["extract_dataclass"]
+        vague = CASES_BY_ID["extract_dataclass_vague"]
+        self.assertEqual(precise.required_top_level, vague.required_top_level)
+        self.assertEqual(precise.behavior, vague.behavior)
+        self.assertEqual(precise.extra_structure, vague.extra_structure)
+        self.assertNotEqual(precise.task, vague.task)
+
+    def test_categories_cover_the_corpus(self) -> None:
+        from local_coding_slm.eval.taxonomy import CATEGORIES, category_of
+
+        ids = [case.id for case in CASES]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(set(ids), set(CATEGORIES))
+        for case in CASES:
+            self.assertEqual(case.category, CATEGORIES[case.id], case.id)
+            self.assertEqual(category_of(case.id), case.category)
+            self.assertNotEqual(case.category, "other")
+
+    def test_tasks_are_unique_for_stub_matching(self) -> None:
+        from local_coding_slm.eval.stub_ollama import infer_case_id
+
+        tasks = [case.task for case in CASES]
+        self.assertEqual(len(tasks), len(set(tasks)))
+        for case in CASES:
+            self.assertEqual(infer_case_id(case.task), case.id, case.id)
+
+    def test_slug_no_hyphen_is_behavior(self) -> None:
+        case = CASES_BY_ID["implement_slug"]
+        bad = next(item for item in FIXTURES if item.name == "implement_slug_no_hyphen")
+        result = score_candidate(bad.text, case)
+        self.assertEqual(result.layer("structure").status, "pass")
+        self.assertEqual(result.layer("behavior").status, "fail")
+
+    def test_nested_person_is_structure(self) -> None:
+        case = CASES_BY_ID["extract_dataclass"]
+        nested = next(item for item in FIXTURES if item.name == "extract_dataclass_nested")
+        result = score_candidate(nested.text, case)
+        self.assertEqual(result.layer("format").status, "pass")
+        self.assertEqual(result.layer("structure").status, "fail")
         self.assertEqual(result.layer("behavior").status, "skip")
 
 

@@ -63,6 +63,23 @@ The same scorer runs against:
 | `implement_clamp` | `local_code` | Implement `clamp` from a spec, no starter file |
 | `explain_clamp` | `local_explain` | Prose: names the function and bounds; mentions clipping |
 | `review_login` | `local_review` | Prose first-pass: flags None and missing auth. **Not** an apply |
+| `extract_dataclass` | `local_refactor` | Move `Person` + `as_person` into `person_model.py`; `tagged()` oracle |
+| `extract_dataclass_vague` | `local_refactor` | **Same checker**, vaguer prompt (`Move the person type…`) |
+| `rename_three_files` | `local_refactor` | `fetch` → `load` across `http_client.py` / `service.py` / `main.py` |
+| `split_settings` | `local_refactor` | Move retries/timeout constants into `settings.py` |
+| `implement_slug` | `local_code` | `slugify('Hello World') == 'hello-world'` |
+| `implement_median` | `local_code` | Odd-length `median([1, 3, 2]) == 2` |
+| `test_clamp_execute` | `local_generate_tests` | Generated clamp tests are imported and executed |
+| `test_median_execute` | `local_generate_tests` | Generated median tests are imported and executed |
+| `explain_mean` | `local_explain` | Prose: names `mean` and that it divides the sum |
+| `review_divzero` | `local_review` | Prose first-pass: flags a missing zero-denominator check |
+
+That is **20 cases**. Harness JSON (`scripts/run_harness.py --out`) adds
+`by_tool` and `by_category` rates (`pass@1`, `pass@end`, `escalated`,
+`first_failure`) so a paper can stratify without dumping transcripts.
+Categories (`extract`, `prompt_contract`, `rename`, `split`, `implement`,
+`tests`, `explain`, `review`) are labels on the committed corpus, **not**
+a task classifier.
 
 Known-fail fixtures are part of the corpus. They prove the scorer can
 tell layers apart:
@@ -196,8 +213,10 @@ live script. It now uses the shared fence extractor. Prefer
 After repeated live runs, a paper may claim:
 
 - Layer-conditional rates on this corpus (format vs structure vs behavior).
+- Tool- and category-stratified `pass@1` / `pass@end` on the 20-case corpus.
 - That a vaguer prompt raises structure failures on the same oracle
-  (`whitespace_extract` vs `whitespace_extract_vague`).
+  (`whitespace_extract` vs `whitespace_extract_vague`; `extract_dataclass` vs
+  `extract_dataclass_vague`).
 - That shape-only test generation overstates success relative to
   executed tests (`test_add_execute`; A6 now uses this checker).
 - That keep-vs-delegate and accept/rewrite/reject are enforceable as a

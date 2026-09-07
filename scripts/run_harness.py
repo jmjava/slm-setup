@@ -20,7 +20,8 @@ from local_coding_slm.eval.harness import (  # noqa: E402
     run_campaign,
     run_orchestrated_campaign,
 )
-from local_coding_slm.eval.record import summarize, write_jsonl  # noqa: E402
+from local_coding_slm.eval.record import write_jsonl  # noqa: E402
+from local_coding_slm.eval.stats import enrich_summary  # noqa: E402
 
 
 def main() -> None:
@@ -93,7 +94,7 @@ def main() -> None:
         dest.mkdir(parents=True, exist_ok=True)
         write_jsonl(str(dest / "attempts.jsonl"), rows)
         (dest / "summary.json").write_text(
-            json.dumps(summarize(rows), indent=2) + "\n",
+            json.dumps(enrich_summary(rows), indent=2) + "\n",
             encoding="utf-8",
         )
         print(f"wrote {dest / 'attempts.jsonl'}")

@@ -18,8 +18,9 @@ from local_coding_slm.eval.orchestrate import (
     run_job,
 )
 from local_coding_slm.eval.policy import AttemptPlan, next_plan
-from local_coding_slm.eval.record import AttemptRecord, summarize
+from local_coding_slm.eval.record import AttemptRecord
 from local_coding_slm.eval.score import score_candidate
+from local_coding_slm.eval.stats import enrich_summary
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -275,7 +276,7 @@ async def _one_attempt(
 
 
 def format_summary(rows: list[AttemptRecord]) -> str:
-    stats = summarize(rows)
+    stats = enrich_summary(rows)
     lines = [
         f"backend={rows[0].backend if rows else '?'} profile={rows[0].profile if rows else '?'}",
         f"cases={stats['cases']} attempts={stats['attempts']}",
@@ -286,6 +287,24 @@ def format_summary(rows: list[AttemptRecord]) -> str:
         f"mcp_ms p50={stats['mcp_ms_p50']:.1f} max={stats['mcp_ms_max']:.1f}",
         f"first_failure={stats['first_failure']}",
     ]
+    by_tool = stats.get("by_tool") or {}
+    if by_tool:
+        lines.append("by_tool:")
+        for name, item in by_tool.items():
+            lines.append(
+                f"  {name}: n={item['cases']} pass@1={item['pass_at_1']:.2f} "
+                f"pass@end={item['pass_end']:.2f} escalated={item['escalated']:.2f} "
+                f"first_failure={item['first_failure']}"
+            )
+    by_category = stats.get("by_category") or {}
+    if by_category:
+        lines.append("by_category:")
+        for name, item in by_category.items():
+            lines.append(
+                f"  {name}: n={item['cases']} pass@1={item['pass_at_1']:.2f} "
+                f"pass@end={item['pass_end']:.2f} escalated={item['escalated']:.2f} "
+                f"first_failure={item['first_failure']}"
+            )
     for item in stats["cases_detail"]:
         lines.append(
             f"  {item['job']}: pass_at={item['pass_at']} "

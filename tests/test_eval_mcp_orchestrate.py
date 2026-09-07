@@ -18,7 +18,7 @@ class McpOrchestratorTests(unittest.IsolatedAsyncioTestCase):
             strong_ms=1,
         )
         stats = summarize(rows)
-        self.assertGreaterEqual(stats["cases"], 10)
+        self.assertGreaterEqual(stats["cases"], 20)
         self.assertEqual(stats["pass_at_1"], 1.0)
         self.assertEqual(stats["pass_end"], 1.0)
 

@@ -460,6 +460,7 @@ EXTENDED_CASES: tuple[EvalCase, ...] = (
             BehaviorCheck("report", "summarize", ([], 0, 5), 0.0),
         ),
         max_tokens=1200,
+        category="extract",
     ),
     EvalCase(
         id="extract_shared_parser",
@@ -477,6 +478,7 @@ EXTENDED_CASES: tuple[EvalCase, ...] = (
             BehaviorCheck("csv_orders", "order_qty", (" widget , 3 ",), 3),
         ),
         max_tokens=1200,
+        category="extract",
     ),
     EvalCase(
         id="split_pipeline",
@@ -491,6 +493,7 @@ EXTENDED_CASES: tuple[EvalCase, ...] = (
             BehaviorCheck("pipeline", "run", ("",), "0"),
         ),
         max_tokens=1200,
+        category="split",
     ),
     EvalCase(
         id="implement_clamp",
@@ -504,6 +507,7 @@ EXTENDED_CASES: tuple[EvalCase, ...] = (
             BehaviorCheck("clamp", "clamp", (-2, 0, 5), 0),
             BehaviorCheck("clamp", "clamp", (9, 0, 5), 5),
         ),
+        category="implement",
     ),
     EvalCase(
         id="explain_clamp",
@@ -513,6 +517,7 @@ EXTENDED_CASES: tuple[EvalCase, ...] = (
         expect_fences=False,
         required_phrases=("clamp", "lo", "hi"),
         behavior_fn=_explain_mentions_clip,
+        category="explain",
     ),
     EvalCase(
         id="review_login",
@@ -522,6 +527,7 @@ EXTENDED_CASES: tuple[EvalCase, ...] = (
         expect_fences=False,
         required_phrases=("none",),
         behavior_fn=_review_flags_auth,
+        category="review",
     ),
 )
 
