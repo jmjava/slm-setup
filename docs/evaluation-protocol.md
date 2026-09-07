@@ -110,6 +110,37 @@ Report `pass@1` separately from `pass@end`. Escalation rate is the
 fraction of cases that called `strong`. Stub `mcp_ms` is not GPU
 latency. Live `mcp_ms` is.
 
+That harness is **local failover after a task was already delegated**.
+It does not prove that the premium model chose to delegate, nor that it
+accepted the patch.
+
+## Premium routing and review
+
+Spec §8 is an instruction to the premium agent, not a classifier
+service. The executable contract is in `src/local_coding_slm/eval/routing.py`
+and `orchestrate.py`:
+
+1. **Route** from explicit signals (shape obvious, context fits, cheap
+   to reject; plus do-not-delegate flags). Mechanical → `local_*`.
+   Incident, architecture, live-tool, or vague work → keep on premium.
+   Local is never called on a keep job.
+2. **Local failover** uses the same `next_plan` policy as the harness
+   (fast, one format/structure repair, then strong).
+3. **Apply gate** requires a premium verdict (`accept` / `rewrite` /
+   `reject`). A local layer-pass is not approval. `local_review` is a
+   cheap SLM tool and cannot approve. Reject drops the patch. Rewrite
+   applies the premium text, not the raw local output. Accept applies
+   local text only when the four layers already passed.
+
+CI uses a scripted reviewer. These tests do **not** call Cursor, GPT, or
+Claude, and they do not prove that a live IDE agent followed the rule
+file. They prove the state machine the agent is supposed to follow.
+
+```bash
+PYTHONPATH=src .venv/bin/python -m unittest tests.test_eval_orchestrate -v
+.venv/bin/python scripts/run_orchestration.py
+```
+
 ## Commands
 
 Fixture protocol (no GPU; this is what Cloud Agents can run):
@@ -117,6 +148,7 @@ Fixture protocol (no GPU; this is what Cloud Agents can run):
 ```bash
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python scripts/run_eval.py
+.venv/bin/python scripts/run_orchestration.py
 ```
 
 Live protocol (workstation with Ollama):
@@ -149,6 +181,8 @@ It still may not claim:
 - General model quality, Halo speedups, or multi-language competence.
 - That cloud agents exercised the private GPU.
 - A success rate from one accepted retry.
+- That a live Cursor / Copilot / Claude session actually routed or
+  reviewed a patch. The orchestrator tests use scripted premium verdicts.
 
 ## Paper mapping
 
