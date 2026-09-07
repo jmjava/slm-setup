@@ -2,15 +2,7 @@
   "mcpServers": {
     "local-coding-slm": {
       "type": "stdio",
-      "command": "${workspaceFolder}/.venv/bin/python",
-      "args": ["${workspaceFolder}/src/local_coding_slm/server.py"],
-      "env": {
-        "OLLAMA_BASE_URL": "${env:OLLAMA_BASE_URL}",
-        "OLLAMA_FAST_MODEL": "${env:OLLAMA_FAST_MODEL}",
-        "OLLAMA_STRONG_MODEL": "${env:OLLAMA_STRONG_MODEL}",
-        "OLLAMA_NUM_CTX": "${env:OLLAMA_NUM_CTX}"
-      },
-      "envFile": "${workspaceFolder}/.env"
+      "command": "${workspaceFolder}/scripts/run_mcp.sh"
     }
   }
 }

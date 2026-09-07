@@ -144,6 +144,9 @@ and `orchestrate.py`:
 CI uses a scripted reviewer. These tests do **not** call Cursor, GPT, or
 Claude, and they do not prove that a live IDE agent followed the rule
 file. They prove the state machine the agent is supposed to follow.
+Desktop instructions (Cursor rule, `CLAUDE.md`, Copilot instructions) now
+state that same gate: premium `accept` / `rewrite` / `reject`,
+`local_review` is notes only, apply the full file set or none.
 
 The same gate runs after **real stdio MCP** calls when you pass
 `--orchestrate`. Stub Ollama still supplies the worker text. Keep jobs

@@ -115,9 +115,11 @@ the fixture corpus, and the stub/live harness:
 [local acceptance results](docs/local-acceptance-results-2026-09-06.md)
 for observations, retries, and limits on what these checks establish.
 
-Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot
-uses `.vscode/mcp.json`. Claude Code uses `.mcp.json`. Reload the client after
-the first checkout so it picks up the server.
+Cursor loads `.cursor/mcp.json`, which starts `scripts/run_mcp.sh` (`.env`,
+no empty-env clobber). Copilot uses `.vscode/mcp.json` and
+`.github/copilot-instructions.md`. Claude Code uses `.mcp.json` and
+`CLAUDE.md`. Reload the client after checkout. The premium agent reviews
+every `local_*` result (`accept` / `rewrite` / `reject`) before applying.
 
 ## Security
 

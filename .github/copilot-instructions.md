@@ -1,13 +1,8 @@
----
-description: Delegate mechanical coding work to local-coding-slm; premium reviews before apply
-alwaysApply: true
----
-
 When a coding task is mechanical (tests, boilerplate, local rename, summary),
 call the local-coding-slm MCP tools instead of generating the full artifact
 yourself.
 
-If those tools are not in your tool list (Cursor Cloud Agent, hosted runner),
+If those tools are not in your tool list (hosted Copilot agent, cloud runner),
 do the work yourself. Do not invent a local_* result.
 
 Keep incident, architecture, live-tool, and vague work on the premium model.

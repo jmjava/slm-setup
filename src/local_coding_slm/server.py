@@ -13,6 +13,7 @@ _SRC = Path(__file__).resolve().parents[1]
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
+from local_coding_slm.envfile import merge_dotenv  # noqa: E402
 from local_coding_slm.ollama_client import (  # noqa: E402
     OllamaError,
     chat,
@@ -24,7 +25,7 @@ from local_coding_slm.prompts import SYSTEM_PROMPTS  # noqa: E402
 
 
 def _load_dotenv() -> None:
-    """Load repo-root .env without overwriting an already-set variable."""
+    """Load repo-root .env. Empty Cursor interpolations count as unset."""
     here = Path(__file__).resolve()
     candidates = [
         Path.cwd() / ".env",
@@ -33,15 +34,7 @@ def _load_dotenv() -> None:
     for path in candidates:
         if not path.is_file():
             continue
-        for raw in path.read_text(encoding="utf-8").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip("'").strip('"')
-            if key and key not in os.environ:
-                os.environ[key] = value
+        merge_dotenv(path.read_text(encoding="utf-8").splitlines(), os.environ)
         break
 
 
@@ -82,7 +75,11 @@ def _run_tool(
 
 @mcp.tool()
 def local_status() -> str:
-    """Health of Ollama and whether the configured fast/strong models are present."""
+    """Health of Ollama and whether the configured fast/strong models are present.
+
+    Call this when a local_* tool returned ERROR: or after idle. Do not invent
+    a healthy status. This does not generate or apply code.
+    """
     return status_report()
 
 
@@ -95,7 +92,12 @@ def local_code(
     model: ModelChoice = "fast",
     max_tokens: int | None = None,
 ) -> str:
-    """Generate new code for a well-specified unit of work."""
+    """Generate new code for a well-specified unit of work.
+
+    Attach files=[{path, content}] when the new code must match existing
+    style. Use model=fast first. Returns fenced files for the premium agent
+    to review (accept / rewrite / reject). This tool does not write the repo.
+    """
     return _run_tool("local_code", task, files, language, style, model, max_tokens)
 
 
@@ -108,7 +110,12 @@ def local_refactor(
     model: ModelChoice = "fast",
     max_tokens: int | None = None,
 ) -> str:
-    """Mechanical, localized rewrite. Return a diff or fenced files."""
+    """Mechanical, localized rewrite.
+
+    Required: files=[{path, content}] for every file to change. Use model=fast
+    first. Expect markdown fenced files with path comments, not a unified diff.
+    The premium agent reviews and applies the full set or none.
+    """
     return _run_tool("local_refactor", task, files, language, style, model, max_tokens)
 
 
@@ -121,7 +128,12 @@ def local_generate_tests(
     model: ModelChoice = "fast",
     max_tokens: int | None = None,
 ) -> str:
-    """Generate unit or integration tests only. Do not change production code."""
+    """Generate unit or integration tests only. Do not change production code.
+
+    Attach the source under test as files=[{path, content}]. Use model=fast
+    first. After you accept the fenced tests, run them yourself. This tool
+    does not write the repo or execute tests.
+    """
     return _run_tool(
         "local_generate_tests", task, files, language, style, model, max_tokens
     )
@@ -136,7 +148,10 @@ def local_explain(
     model: ModelChoice = "fast",
     max_tokens: int | None = None,
 ) -> str:
-    """Explain a snippet or flow."""
+    """Explain a snippet or flow.
+
+    Attach the snippet as files=[{path, content}]. Returns notes, not a patch.
+    """
     return _run_tool("local_explain", task, files, language, style, model, max_tokens)
 
 
@@ -149,7 +164,11 @@ def local_review(
     model: ModelChoice = "fast",
     max_tokens: int | None = None,
 ) -> str:
-    """Cheap first-pass review for obvious null, auth, and test gaps."""
+    """Cheap first-pass review for obvious null, auth, and test gaps.
+
+    Notes only. Cannot approve a patch. The premium agent still chooses
+    accept, rewrite, or reject, and never applies these notes as code.
+    """
     return _run_tool("local_review", task, files, language, style, model, max_tokens)
 
 

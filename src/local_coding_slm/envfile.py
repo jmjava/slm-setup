@@ -2,7 +2,25 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, MutableMapping
+import os
+from collections.abc import Iterable, Mapping, MutableMapping
+
+
+def getenv_nonempty(
+    name: str,
+    default: str,
+    environ: Mapping[str, str] | None = None,
+) -> str:
+    """Return ``default`` when the variable is missing or blank.
+
+    Cursor ``${env:NAME}`` interpolation can inject an empty string, which
+    must not override ``.env`` or the documented defaults.
+    """
+    env = os.environ if environ is None else environ
+    raw = env.get(name)
+    if raw is None or not str(raw).strip():
+        return default
+    return str(raw).strip()
 
 
 def merge_dotenv(lines: Iterable[str], environ: MutableMapping[str, str]) -> None:

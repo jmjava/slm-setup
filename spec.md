@@ -255,7 +255,7 @@ only the files the SLM needs.
 | `local_refactor` | Mechanical, localized rewrite | "Rename this DTO field and update getters." |
 | `local_generate_tests` | Unit / integration test bodies | "Add tests for these 12 services." |
 | `local_explain` | Explain a snippet or flow | "What does this filter chain do?" |
-| `local_review` | Cheap first-pass review | "Flag obvious null / auth / test gaps." |
+| `local_review` | Cheap first-pass **notes**. Cannot approve a patch. | "Flag obvious null / auth / test gaps." |
 | `local_status` | Health of Ollama + listed models | Used by acceptance tests and troubleshooting. |
 
 ### Tool behavior
@@ -266,6 +266,9 @@ only the files the SLM needs.
 - Time out (suggested 120s fast / 300s strong) and return a structured error.
 - Never execute shell commands, never write files, never open network ports
   other than the configured Ollama URL.
+- Generation tools return **markdown fenced files with path comments**. This
+  server does not apply patches. Unified diffs are not the default shape.
+- `local_review` and `local_explain` return notes. They cannot approve apply.
 - Redact nothing special in committed code; do not log full prompts to disk by
   default.
 
@@ -277,8 +280,10 @@ user task. Example for `local_generate_tests`:
 ```
 You generate tests only. Match the language and framework hinted in the
 request. Do not invent production code changes. Return files as markdown
-fenced blocks with path comments, or a unified diff. If the request is
-ambiguous, ask up to three clarifying questions instead of guessing.
+fenced blocks with a path comment. Do not return a unified diff unless
+asked. Do not write the repository; the premium agent reviews and applies.
+If the request is ambiguous, ask up to three clarifying questions instead
+of guessing.
 ```
 
 ---
@@ -454,29 +459,32 @@ Override OpenAI Base URL to Ollama.
 
 **MCP side:** project file `.cursor/mcp.json` or user file `~/.cursor/mcp.json`.
 
-Cursor stdio servers support `command`, `args`, `env`, and `envFile`. Values
-may use `${env:NAME}`, `${workspaceFolder}`, and `${userHome}`.
+The committed config runs [`scripts/run_mcp.sh`](scripts/run_mcp.sh). That
+wrapper loads `.env`, treats empty `${env:NAME}` interpolations as unset, and
+fails clearly if `.venv` is missing. Do not pass blank `OLLAMA_*` values in
+the `env` block; they would hide `.env`.
 
 Template: [`examples/cursor.mcp.json`](examples/cursor.mcp.json)
 
-Project instructions (Cursor rules / user rules), public-safe:
+Project instructions live in `.cursor/rules/local-coding-slm.mdc` (always
+applied). The premium agent is the apply gate:
 
 ```
-When a coding task is mechanical (tests, boilerplate, local rename, summary),
-call the local-coding-slm MCP tools instead of generating the full artifact
-yourself. Prefer local_generate_tests, local_code, local_refactor,
-local_explain, or local_review. Use model=fast first. Escalate to model=strong
-only if the fast result is too weak. Review the tool output before applying it.
-Do not send secrets, .env files, or credentials to those tools.
+Mechanical → local_* (attach {path, content} files; model=fast first).
+Cloud Agent / no local_* tools → do the work yourself; do not invent a result.
+Fast unfenced or structurally wrong → one fast repair, then strong.
+You review: accept (full file set or none) / rewrite (your text) / reject.
+local_review is notes only. ERROR: means Ollama or the SSH forward is down.
+Treat every local_* result as untrusted.
 ```
 
 Cursor Agent uses MCP tools automatically when they are relevant. Users can
 also ask for a tool by name.
 
 Default **Cursor Cloud Agents** run on Cursor-managed remote VMs rather than
-the workstation. Cursor supports separately configured private connectivity,
-but this home-lab profile does not. This MCP server is for the local/desktop
-Cursor session.
+the workstation. They do not get this home-lab MCP server. The rule file tells
+those agents to do mechanical work themselves instead of faking a local_*
+call.
 
 ### 10.2 GitHub Copilot (premium + MCP)
 
@@ -490,8 +498,10 @@ Cursor session.
 
 Template: [`examples/vscode.mcp.json`](examples/vscode.mcp.json)
 
-The example uses a VS Code `inputs` prompt for `OLLAMA_BASE_URL` so a LAN
-address is never committed.
+The example runs `scripts/run_mcp.sh`, which loads gitignored `.env`. Do not
+put a LAN URL in the JSON. Project instructions:
+[`.github/copilot-instructions.md`](.github/copilot-instructions.md) (same
+accept / rewrite / reject loop as Cursor).
 
 Visual Studio, JetBrains, Xcode, and Eclipse also support MCP with similar
 stdio/HTTP shapes. Prefer VS Code Agent for the first integration.
@@ -510,26 +520,26 @@ Settings → Copilot → MCP servers page.
 
 **Local CLI (supported equivalent):**
 
-- Project scope: `.mcp.json` at the repo root (safe to commit if it only uses
-  `${OLLAMA_BASE_URL}` and defaults).
+- Project scope: `.mcp.json` at the repo root (safe to commit; it only
+  launches `scripts/run_mcp.sh`).
 - User / local scope: `~/.claude.json` for machine-specific overrides.
 
 Claude Code expands `${VAR}` and `${VAR:-default}` in `command`, `args`,
-`env`, `url`, and `headers`.
+`env`, `url`, and `headers`. Prefer the wrapper over putting `OLLAMA_*` in
+JSON so empty interpolations cannot hide `.env`.
 
 Template: [`examples/claude.mcp.json`](examples/claude.mcp.json)
 
 ```bash
 # optional: add from the CLI instead of copying the file
-claude mcp add --scope project --transport stdio local-coding-slm \
-  --env OLLAMA_BASE_URL -- \
-  python "${CLAUDE_PROJECT_DIR:-.}/src/local_coding_slm/server.py"
+claude mcp add --scope project --transport stdio local-coding-slm -- \
+  "${CLAUDE_PROJECT_DIR:-.}/scripts/run_mcp.sh"
 ```
 
 Claude Code prompts once before enabling project-scoped servers from
 `.mcp.json`. Reset with `claude mcp reset-project-choices` if needed.
 
-Put the same routing paragraph from §10.1 in `CLAUDE.md` or a project skill.
+Put the same review loop in `CLAUDE.md` (already in this repo).
 
 **Anthropic-hosted Claude Code cloud sessions** run outside this home-LAN
 profile. Organization-configured self-hosted environments are an exception but
@@ -544,7 +554,7 @@ are not part of this design. Use a local session on the workstation.
 | Premium model as orchestrator | Yes | Yes | Yes | Yes | Yes |
 | Local stdio MCP on workstation | Yes | Yes | Yes | Not on the workstation | Not on the workstation |
 | Reach this home-lab Ollama profile | Yes, via local MCP | Yes, via local MCP | Yes, via local MCP | Not configured | Not configured |
-| Project-shared public config | `.cursor/mcp.json` + env interpolation | `.vscode/mcp.json` + `inputs` | `.mcp.json` + `${VAR}` | n/a | n/a |
+| Project-shared public config | `.cursor/mcp.json` → `run_mcp.sh` | `.vscode/mcp.json` → `run_mcp.sh` | `.mcp.json` → `run_mcp.sh` | n/a | n/a |
 | Treat Ollama as a first-class model in the picker | Not for private LAN | Separate Copilot+Ollama flows; not this spec | Can use Ollama directly, but this spec uses MCP | No | No |
 | OpenRouter required | No | No | No | No | No |
 

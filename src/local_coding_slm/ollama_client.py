@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import json
-import os
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlparse
+
+from local_coding_slm.envfile import getenv_nonempty
 
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_FAST_MODEL = "qwen3.5:9b"
@@ -33,10 +34,10 @@ class OllamaSettings:
     @classmethod
     def from_env(cls) -> "OllamaSettings":
         return cls(
-            base_url=os.environ.get("OLLAMA_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
-            fast_model=os.environ.get("OLLAMA_FAST_MODEL", DEFAULT_FAST_MODEL),
-            strong_model=os.environ.get("OLLAMA_STRONG_MODEL", DEFAULT_STRONG_MODEL),
-            num_ctx=int(os.environ.get("OLLAMA_NUM_CTX", str(DEFAULT_NUM_CTX))),
+            base_url=getenv_nonempty("OLLAMA_BASE_URL", DEFAULT_BASE_URL).rstrip("/"),
+            fast_model=getenv_nonempty("OLLAMA_FAST_MODEL", DEFAULT_FAST_MODEL),
+            strong_model=getenv_nonempty("OLLAMA_STRONG_MODEL", DEFAULT_STRONG_MODEL),
+            num_ctx=int(getenv_nonempty("OLLAMA_NUM_CTX", str(DEFAULT_NUM_CTX))),
         )
 
     def resolve_model(self, model: str | None) -> str:
