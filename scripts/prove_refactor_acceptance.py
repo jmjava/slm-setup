@@ -7,7 +7,6 @@ import argparse
 import asyncio
 import ast
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Callable, cast
@@ -17,6 +16,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
+from local_coding_slm.eval.extract import extract_files  # noqa: E402
 from local_coding_slm.server import _load_dotenv  # noqa: E402
 
 _load_dotenv()
@@ -39,10 +39,11 @@ CASES = [
 
 
 def _extract_python(text: str) -> str:
-    match = re.search(r"```(?:python)?\s*\n(.*?)```", text, flags=re.DOTALL)
-    if not match:
+    files = extract_files(text)
+    fences = [item for item in files if item.kind == "fence"]
+    if len(fences) != 1:
         raise ValueError("local_refactor did not return one fenced Python file")
-    return match.group(1).strip() + "\n"
+    return fences[0].content
 
 
 def _verify_refactor(code: str) -> None:

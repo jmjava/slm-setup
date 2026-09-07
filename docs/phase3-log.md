@@ -5,6 +5,7 @@ IPs, or secrets here.
 
 Reproducible commands, complete 2026-09-06 observations, and limitations:
 [local-acceptance-results-2026-09-06.md](local-acceptance-results-2026-09-06.md).
+Scoring method: [evaluation-protocol.md](evaluation-protocol.md).
 
 | Date | Tool | Model | Task | Result | Notes |
 | --- | --- | --- | --- | --- | --- |

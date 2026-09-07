@@ -651,19 +651,25 @@ OLLAMA_BASE_URL
 │       ├── server.py                ← stdio MCP server
 │       ├── ollama_client.py
 │       ├── envfile.py
-│       └── prompts.py
+│       ├── prompts.py
+│       └── eval/                    ← layered scorer + fixture corpus
 ├── docs/
 │   ├── roadmap.md                   ← current vs future phases
 │   ├── c4.md                        ← C4 context / container / component
-│   └── phase3-log.md
+│   ├── phase3-log.md
+│   └── evaluation-protocol.md       ← transport/format/structure/behavior
 ├── scripts/
 │   ├── run_mcp.sh                   ← project MCP entry (loads .env)
 │   ├── prove_acceptance.py
+│   ├── prove_refactor_acceptance.py
+│   ├── run_eval.py                  ← fixture corpus; --live on the workstation
 │   └── check_deployment_safety.py   ← defensive bind / tag / git checks
 └── tests/
     ├── test_ollama_client.py
     ├── test_envfile.py
-    └── test_safety.py
+    ├── test_safety.py
+    ├── test_eval_extract.py
+    └── test_eval_score.py
 ```
 
 Phase 1 of this repository is the spec, public-safe examples, and a running
@@ -703,6 +709,12 @@ Dated baseline evidence:
 [docs/local-acceptance-results-2026-09-06.md](docs/local-acceptance-results-2026-09-06.md).
 It distinguishes mocked unit tests from live Ollama/MCP checks and states the
 limits of the current single-file refactor case.
+
+Measurement method and committed corpus:
+[docs/evaluation-protocol.md](docs/evaluation-protocol.md). Score fixtures in
+cloud/CI with `scripts/run_eval.py`. Repeat live runs on the workstation
+with `--live` and record the first failing layer. Do not treat a successful
+retry as pass-at-one.
 
 Only after that, consider automatic task classification.
 

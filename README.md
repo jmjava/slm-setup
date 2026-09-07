@@ -15,6 +15,10 @@ does bounded, mechanical generation on a private GPU host running
   diagrams (Halo is the same containers, a later host).
 - **[docs/local-acceptance-results-2026-09-06.md](docs/local-acceptance-results-2026-09-06.md)**
   — dated unit, live MCP, and semantic-refactor results with limitations.
+- **[docs/evaluation-protocol.md](docs/evaluation-protocol.md)** — layered
+  scoring (transport / format / structure / behavior) and the committed
+  fixture corpus. Cloud Agents can run the fixtures; live Ollama stays on
+  the workstation.
 - **[docs/security-scan-results-2026-09-06.md](docs/security-scan-results-2026-09-06.md)**
   — dated Gitleaks, GitHub alert, tracked-tree, and deployment-safety results.
 - **[examples/](examples/)** — public-safe client config templates. Copy them
@@ -65,10 +69,12 @@ connected through SSH local forwarding.
    .venv/bin/pip install -e .
    ```
 
-5. Unit tests (no GPU required; Ollama HTTP calls are mocked):
+5. Unit tests (no GPU required; Ollama HTTP calls are mocked; the eval
+   corpus is scored from committed fixtures):
 
    ```bash
    PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+   .venv/bin/python scripts/run_eval.py
    ```
 
 6. Deployment safety checks (no GPU required; inspects this host only):
@@ -92,12 +98,13 @@ connected through SSH local forwarding.
    .venv/bin/python scripts/prove_refactor_acceptance.py --model strong
    ```
 
-The unit suite proves deterministic client and safety behavior. The live
-acceptance scripts are the evidence that the stdio MCP server can reach the
-configured Ollama runtime and produce usable output; do not describe the unit
-suite as exercising Ollama. See the dated
-[local acceptance results](docs/local-acceptance-results-2026-09-06.md) for
-observations, retries, and limits on what these checks establish.
+The unit suite proves deterministic client, safety, and evaluation-scorer
+behavior. The live acceptance scripts are the evidence that the stdio MCP
+server can reach the configured Ollama runtime and produce usable output; do
+not describe the unit suite as exercising Ollama. Layered scoring and the
+fixture corpus: [evaluation protocol](docs/evaluation-protocol.md). See the
+dated [local acceptance results](docs/local-acceptance-results-2026-09-06.md)
+for observations, retries, and limits on what these checks establish.
 
 Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot
 uses `.vscode/mcp.json`. Claude Code uses `.mcp.json`. Reload the client after
