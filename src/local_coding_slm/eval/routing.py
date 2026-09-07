@@ -3,11 +3,13 @@
 The premium agent still chooses the signals. This module is the contract
 those signals must satisfy: mechanical work may be delegated; incident,
 architectural, and live-tool work stays on the premium model. Delegated
-work always requires a later premium review before apply.
+work always requires a later premium review before apply. Secret files
+never go to local_* even when the task looks mechanical.
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 
@@ -42,8 +44,28 @@ def mechanical_signals(**overrides: bool) -> RouteSignals:
     return RouteSignals(**values)
 
 
-def route(signals: RouteSignals) -> RouteDecision:
-    """Return keep vs delegate. Do-not-delegate flags win over mechanical ones."""
+def payload_block_reason(files: Sequence[dict[str, str]] | None) -> str | None:
+    """Refuse to send secrets or credential files to local_*."""
+    for item in files or ():
+        path = (item.get("path") or "").replace("\\", "/").lower()
+        name = path.rsplit("/", 1)[-1]
+        if name == ".env.example":
+            continue
+        if name == ".env" or name.startswith(".env."):
+            return "secrets_file"
+        if name in {"credentials.json", "id_rsa", "id_rsa.pub"}:
+            return "secrets_file"
+    return None
+
+
+def route(
+    signals: RouteSignals,
+    files: Sequence[dict[str, str]] | None = None,
+) -> RouteDecision:
+    """Return keep vs delegate. Do-not-delegate flags and secret files win."""
+    blocked = payload_block_reason(files)
+    if blocked:
+        return RouteDecision("keep", blocked, False)
     if signals.incident_debug:
         return RouteDecision("keep", "incident_debug", False)
     if signals.architectural:

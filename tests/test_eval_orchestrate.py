@@ -11,6 +11,7 @@ from local_coding_slm.eval.cases import (
     WHITESPACE_GOLDEN,
     WHITESPACE_NO_FENCE,
 )
+from local_coding_slm.eval.cases_extended import IMPLEMENT_CLAMP_NO_HI
 from local_coding_slm.eval.orchestrate import (
     ApplyDecision,
     LocalAttempt,
@@ -24,6 +25,7 @@ from local_coding_slm.eval.record import AttemptRecord
 from local_coding_slm.eval.review import (
     LOCAL_REVIEW_TOOL,
     PREMIUM_REVIEWER,
+    ReviewPacket,
     ReviewVerdict,
     accept,
     reject,
@@ -82,6 +84,21 @@ class RouteTests(unittest.TestCase):
         decision = route(RouteSignals(shape_obvious=False, context_fits=True))
         self.assertEqual(decision.action, "keep")
         self.assertEqual(decision.reason, "not_mechanical")
+
+    def test_env_file_is_never_delegated(self) -> None:
+        decision = route(
+            mechanical_signals(),
+            files=({"path": ".env", "content": "OLLAMA_BASE_URL=http://127.0.0.1:11434"},),
+        )
+        self.assertEqual(decision.action, "keep")
+        self.assertEqual(decision.reason, "secrets_file")
+
+    def test_env_example_may_still_delegate(self) -> None:
+        decision = route(
+            mechanical_signals(),
+            files=({"path": ".env.example", "content": "OLLAMA_BASE_URL="},),
+        )
+        self.assertEqual(decision.action, "delegate")
 
 
 class ApplyGateTests(unittest.TestCase):
@@ -157,6 +174,16 @@ class ApplyGateTests(unittest.TestCase):
         )
         self.assertFalse(blocked.applied)
         self.assertEqual(blocked.blocked, "accept_unproven_local")
+
+    def test_broken_rewrite_is_not_applied(self) -> None:
+        applied = decide_apply(
+            delegated=True,
+            last=_attempt(passed=True, text="LOCAL"),
+            verdict=rewrite(IMPLEMENT_CLAMP_NO_HI),
+            eval_case=CASES_BY_ID["implement_clamp"],
+        )
+        self.assertFalse(applied.applied)
+        self.assertTrue((applied.blocked or "").startswith("rewrite_unproven"))
 
 
 class OrchestratorLoopTests(unittest.TestCase):
@@ -271,20 +298,84 @@ class OrchestratorLoopTests(unittest.TestCase):
         self.assertIsNone(result.applied_text)
 
     def test_premium_rewrite_not_raw_local(self) -> None:
-        rewritten = "```python\n# user_text.py\n# premium rewrite\n```\n"
+        rewritten = WHITESPACE_GOLDEN.replace(
+            "return \" \".join(value.strip().split())",
+            'return " ".join(value.strip().split())  # premium',
+        )
         result = run_job(
             OrchestrationJob(
                 id="trim_extract",
                 signals=mechanical_signals(),
                 eval_case=CASES_BY_ID["whitespace_extract"],
                 local_replies=(WHITESPACE_GOLDEN,),
-                review=rewrite(rewritten, notes="trimmed"),
+                review=rewrite(rewritten, notes="trimmed comment"),
             )
         )
         self.assertEqual(result.outcome, "applied_rewrite")
         self.assertEqual(result.apply_source, "premium")
         self.assertEqual(result.applied_text, rewritten)
         self.assertNotEqual(result.applied_text, WHITESPACE_GOLDEN)
+
+    def test_broken_premium_rewrite_blocked(self) -> None:
+        result = run_job(
+            OrchestrationJob(
+                id="bad_rewrite",
+                signals=mechanical_signals(),
+                eval_case=CASES_BY_ID["whitespace_extract"],
+                local_replies=(WHITESPACE_GOLDEN,),
+                review=rewrite("```python\n# user_text.py\n# broken\n```\n"),
+            )
+        )
+        self.assertEqual(result.outcome, "blocked")
+        self.assertFalse(result.applied)
+        self.assertIn("rewrite_unproven", result.blocked or "")
+
+    def test_reviewer_receives_layer_packet_and_local_review_notes(self) -> None:
+        seen: list[ReviewPacket] = []
+
+        def reviewer(packet: ReviewPacket) -> ReviewVerdict:
+            seen.append(packet)
+            return accept(notes="packet ok")
+
+        result = run_job(
+            OrchestrationJob(
+                id="packet_extract",
+                signals=mechanical_signals(),
+                eval_case=CASES_BY_ID["whitespace_extract"],
+                local_replies=(WHITESPACE_GOLDEN,),
+                local_review_notes="local_review: no null deref in this helper",
+            ),
+            reviewer=reviewer,
+        )
+        self.assertEqual(result.outcome, "applied_local")
+        self.assertEqual(len(seen), 1)
+        self.assertTrue(seen[0].passed)
+        self.assertEqual(seen[0].layers.get("behavior"), "pass")
+        self.assertIn("null", seen[0].local_review_notes)
+
+    def test_secrets_file_keep_never_calls_local(self) -> None:
+        def boom(plan: object) -> str:
+            raise AssertionError(f"must not send .env to local: {plan}")
+
+        secret_case = CASES_BY_ID["whitespace_extract"]
+        from dataclasses import replace
+
+        tainted = replace(
+            secret_case,
+            files=secret_case.files + ({"path": ".env", "content": "K=v"},),
+        )
+        result = run_job(
+            OrchestrationJob(
+                id="secret_keep",
+                signals=mechanical_signals(),
+                eval_case=tainted,
+                premium_keep_text="premium handles secrets",
+            ),
+            generate=boom,
+        )
+        self.assertFalse(result.delegated)
+        self.assertEqual(result.route_reason, "secrets_file")
+        self.assertEqual(result.local_attempts, 0)
 
     def test_missing_review_blocks_even_after_local_pass(self) -> None:
         result = run_job(

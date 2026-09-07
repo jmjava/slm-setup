@@ -165,7 +165,8 @@ async def _run_orchestrated_job(
 ) -> JobResult:
     from local_coding_slm.eval.routing import route
 
-    decision = route(job.signals)
+    files = job.eval_case.files if job.eval_case is not None else ()
+    decision = route(job.signals, files)
     if decision.action == "keep":
         return run_job(job)
     if job.eval_case is None:

@@ -135,8 +135,11 @@ and `orchestrate.py`:
 3. **Apply gate** requires a premium verdict (`accept` / `rewrite` /
    `reject`). A local layer-pass is not approval. `local_review` is a
    cheap SLM tool and cannot approve. Reject drops the patch. Rewrite
-   applies the premium text, not the raw local output. Accept applies
-   local text only when the four layers already passed.
+   applies the premium text, not the raw local output, **and is scored
+   on the same four layers** before apply. Accept applies local text
+   only when the four layers already passed. `.env` / credential files
+   are never delegated. The reviewer sees a `ReviewPacket` (text, layer
+   statuses, optional `local_review` notes), not only the raw MCP string.
 
 CI uses a scripted reviewer. These tests do **not** call Cursor, GPT, or
 Claude, and they do not prove that a live IDE agent followed the rule
@@ -192,6 +195,7 @@ After repeated live runs, a paper may claim:
   executed tests (`test_add_execute`; A6 now uses this checker).
 - That keep-vs-delegate and accept/rewrite/reject are enforceable as a
   state machine on stub workers plus real stdio MCP.
+- That a premium rewrite which fails the same oracles is not applied.
 
 It still may not claim:
 

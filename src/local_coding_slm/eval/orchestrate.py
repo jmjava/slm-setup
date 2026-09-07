@@ -17,6 +17,7 @@ from local_coding_slm.eval.policy import AttemptPlan, next_plan
 from local_coding_slm.eval.record import AttemptRecord
 from local_coding_slm.eval.review import (
     LOCAL_REVIEW_TOOL,
+    ReviewPacket,
     ReviewVerdict,
     ScriptedReviewer,
     is_premium_review,
@@ -25,7 +26,7 @@ from local_coding_slm.eval.routing import RouteDecision, RouteSignals, route
 from local_coding_slm.eval.score import EvalCase, EvalResult, score_candidate
 
 GenerateFn = Callable[[AttemptPlan], str]
-ReviewFn = Callable[[str, str, bool], ReviewVerdict | None]
+ReviewFn = Callable[..., ReviewVerdict | None]
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,7 @@ class OrchestrationJob:
     local_replies: tuple[str, ...] = ()
     review: ReviewVerdict | None = None
     premium_keep_text: str = ""
+    local_review_notes: str = ""
 
 
 @dataclass(frozen=True)
@@ -97,8 +99,9 @@ def decide_apply(
     last: LocalAttempt | None,
     verdict: ReviewVerdict | None,
     keep_text: str = "",
+    eval_case: EvalCase | None = None,
 ) -> ApplyDecision:
-    """Apply gate. Local layer-pass is not approval."""
+    """Apply gate. Local layer-pass is not approval. Rewrites are re-scored."""
     if not delegated:
         return ApplyDecision(
             outcome="kept_on_premium",
@@ -134,6 +137,18 @@ def decide_apply(
                 text=None,
                 blocked="empty_rewrite",
             )
+        if eval_case is not None:
+            scored = score_candidate(verdict.text, eval_case)
+            if not scored.passed:
+                fail = scored.first_failure
+                layer = fail.name if fail is not None else "behavior"
+                return ApplyDecision(
+                    outcome="blocked",
+                    applied=False,
+                    source=None,
+                    text=None,
+                    blocked=f"rewrite_unproven:{layer}",
+                )
         return ApplyDecision(
             outcome="applied_rewrite",
             applied=True,
@@ -198,11 +213,17 @@ def finish_delegated_job(
     verdict: ReviewVerdict | None,
 ) -> JobResult:
     """Apply gate after local attempts (scripted or MCP) already ran."""
-    decision = route(job.signals)
+    files = job.eval_case.files if job.eval_case is not None else ()
+    decision = route(job.signals, files)
     if decision.action != "delegate":
         raise ValueError(f"{job.id}: finish_delegated_job requires a delegated route")
     last = attempts[-1] if attempts else None
-    apply = decide_apply(delegated=True, last=last, verdict=verdict)
+    apply = decide_apply(
+        delegated=True,
+        last=last,
+        verdict=verdict,
+        eval_case=job.eval_case,
+    )
     return _result(job, decision, apply, attempts, verdict)
 
 
@@ -212,7 +233,8 @@ def run_job(
     generate: GenerateFn | None = None,
     reviewer: ReviewFn | ScriptedReviewer | None = None,
 ) -> JobResult:
-    decision: RouteDecision = route(job.signals)
+    files = job.eval_case.files if job.eval_case is not None else ()
+    decision: RouteDecision = route(job.signals, files)
     if decision.action == "keep":
         apply = decide_apply(
             delegated=False,
@@ -232,22 +254,46 @@ def run_job(
         raise ValueError(f"{job.id}: delegated jobs need an eval_case")
 
     local = generate if generate is not None else ScriptedLocal(job.local_replies)
-    review_fn: ReviewFn
+    scripted: ScriptedReviewer | None = None
     if reviewer is None:
         scripted = ScriptedReviewer(job.review)
-        review_fn = scripted.review
+        review_fn: ReviewFn = scripted.review_packet
     elif isinstance(reviewer, ScriptedReviewer):
-        review_fn = reviewer.review
+        review_fn = reviewer.review_packet
     else:
         review_fn = reviewer
 
     attempts = run_local_loop(job.eval_case, local, job=job.id)
     last = attempts[-1] if attempts else None
-    local_text = last.text if last else ""
-    local_passed = last.passed if last else False
-    verdict = review_fn(job.id, local_text, local_passed)
-    apply = decide_apply(delegated=True, last=last, verdict=verdict)
+    packet = _packet_for(job, last)
+    verdict = _invoke_review(review_fn, packet)
+    apply = decide_apply(
+        delegated=True,
+        last=last,
+        verdict=verdict,
+        eval_case=job.eval_case,
+    )
     return _result(job, decision, apply, attempts, verdict)
+
+
+def _packet_for(job: OrchestrationJob, last: LocalAttempt | None) -> ReviewPacket:
+    layers = dict(last.record.layers) if last is not None else {}
+    return ReviewPacket(
+        job_id=job.id,
+        local_text=last.text if last is not None else "",
+        passed=last.passed if last is not None else False,
+        layers=layers,
+        first_failure=None if last is None else last.record.first_failure,
+        local_review_notes=job.local_review_notes,
+        case_id=job.eval_case.id if job.eval_case is not None else job.id,
+    )
+
+
+def _invoke_review(review_fn: ReviewFn, packet: ReviewPacket) -> ReviewVerdict | None:
+    try:
+        return review_fn(packet)
+    except TypeError:
+        return review_fn(packet.job_id, packet.local_text, packet.passed)
 
 
 def _result(
