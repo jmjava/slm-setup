@@ -10,7 +10,7 @@ LAN addresses, or SKUs here.
 | --- | --- | --- |
 | 1 — inference host | Done on the workstation lab | Ollama + starter tags on a private GPU |
 | 2 — MCP bridge | Done | `local-coding-slm` stdio tools; Cursor / Copilot / Claude adapters |
-| 3 — measure | Protocol + expanded corpus + MCP apply gate + CI; live rates still informal | Layered scoring; scripted premium routing/review; no auto-classifier yet |
+| 3 — measure | Protocol + 20-case corpus + stratified stub stats + apply gate + CI; live rates still informal | Layered scoring; scripted premium routing/review; no auto-classifier yet |
 | T12 second NVIDIA host | Blocked on host power | WSL GPU via SSH; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
 
 Finish Phase 3 measurement (layered live rates on the committed corpus)

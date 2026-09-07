@@ -8,6 +8,8 @@ Reproducible commands, complete 2026-09-06 observations, and limitations:
 Scoring method: [evaluation-protocol.md](evaluation-protocol.md).
 Cloud-safe stub + apply-gate run:
 [cloud-orchestrator-results-2026-09-07.md](cloud-orchestrator-results-2026-09-07.md).
+20-case corpus + stratified stub rates:
+[cloud-corpus-stats-2026-09-07.md](cloud-corpus-stats-2026-09-07.md).
 
 | Date | Tool | Model | Task | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -16,6 +18,7 @@ Cloud-safe stub + apply-gate run:
 | 2026-09-06 | local_refactor | fast | extract module-level whitespace helper | accepted | Real Ollama; generated module parsed and preserved behavior across 3 executed cases; warm run 6.7s |
 | 2026-09-06 | local_refactor | strong | extract module-level whitespace helper | accepted | Real Ollama; generated module parsed and preserved behavior across 3 executed cases; warm run 25.6s; model reported 46% CPU / 54% GPU at 16K context |
 | 2026-09-07 | all local_* eval tools | stub | 10-case corpus + apply gate | accepted / rewritten / rejected per job | Cloud Agent; no GPU; A6 now executes tests |
+| 2026-09-07 | all local_* eval tools | stub | 20-case corpus; by_tool / by_category rates | pass@end 1.00 (observed); pass@1 0.00 | Cloud Agent; no GPU; 42 attempts; escalated 0.40 |
 
 Columns:
 

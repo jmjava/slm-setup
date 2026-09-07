@@ -21,6 +21,8 @@ does bounded, mechanical generation on a private GPU host running
   the workstation.
 - **[docs/cloud-orchestrator-results-2026-09-07.md](docs/cloud-orchestrator-results-2026-09-07.md)**
   — dated Cloud Agent run of the stub corpus and apply gate (no GPU).
+- **[docs/cloud-corpus-stats-2026-09-07.md](docs/cloud-corpus-stats-2026-09-07.md)**
+  — dated 20-case stub harness with `by_tool` / `by_category` rates (no GPU).
 - **[docs/security-scan-results-2026-09-06.md](docs/security-scan-results-2026-09-06.md)**
   — dated Gitleaks, GitHub alert, tracked-tree, and deployment-safety results.
 - **[examples/](examples/)** — public-safe client config templates. Copy them
