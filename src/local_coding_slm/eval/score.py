@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import re
 import sys
 import tempfile
 from collections.abc import Callable, Sequence
@@ -80,11 +81,27 @@ class EvalCase:
     behavior: tuple[BehaviorCheck, ...] = ()
     extra_structure: Callable[[dict[str, str]], str | None] | None = None
     behavior_fn: Callable[[dict[str, str]], None] | None = None
+    expect_fences: bool = True
+    required_phrases: tuple[str, ...] = ()
+    max_tokens: int = 700
 
 
 def score_candidate(text: str, case: EvalCase) -> EvalResult:
     layers: list[LayerResult] = []
     files: tuple[ExtractedFile, ...] = ()
+    raw = (text or "").strip()
+    if raw.startswith("ERROR:"):
+        layers.extend(
+            [
+                LayerResult("transport", "fail", raw.splitlines()[0][:240]),
+                LayerResult("format", "skip", "skipped after transport failure"),
+                LayerResult("structure", "skip", "skipped after transport failure"),
+                LayerResult("behavior", "skip", "skipped after transport failure"),
+            ]
+        )
+        return EvalResult(case.id, tuple(layers), files)
+    if not case.expect_fences:
+        return _score_prose(raw, case)
 
     try:
         extracted = extract_files(text)
@@ -194,6 +211,70 @@ def score_candidate(text: str, case: EvalCase) -> EvalResult:
 
     layers.append(LayerResult("behavior", "pass", detail))
     return EvalResult(case.id, tuple(layers), files)
+
+
+def _score_prose(raw: str, case: EvalCase) -> EvalResult:
+    """Score local_explain / local_review style output. No fenced files required."""
+    layers: list[LayerResult] = [
+        LayerResult("transport", "pass", "candidate is not an ERROR payload"),
+    ]
+    if not raw:
+        layers.extend(
+            [
+                LayerResult("format", "fail", "empty tool response"),
+                LayerResult("structure", "skip", "skipped after format failure"),
+                LayerResult("behavior", "skip", "skipped after format failure"),
+            ]
+        )
+        return EvalResult(case.id, tuple(layers))
+    layers.append(LayerResult("format", "pass", f"prose candidate ({len(raw)} chars)"))
+    missing = [phrase for phrase in case.required_phrases if not _phrase_present(raw, phrase)]
+    if missing:
+        layers.append(
+            LayerResult(
+                "structure",
+                "fail",
+                "missing required phrase(s): " + ", ".join(missing),
+            )
+        )
+        layers.append(LayerResult("behavior", "skip", "skipped after structure failure"))
+        return EvalResult(case.id, tuple(layers))
+    if case.extra_structure is not None:
+        extra = case.extra_structure({"_prose": raw})
+        if extra:
+            layers.append(LayerResult("structure", "fail", extra))
+            layers.append(LayerResult("behavior", "skip", "skipped after structure failure"))
+            return EvalResult(case.id, tuple(layers))
+    phrase_note = (
+        "required phrases present"
+        if case.required_phrases
+        else "no required phrases"
+    )
+    layers.append(LayerResult("structure", "pass", phrase_note))
+    blob = {"_prose": raw}
+    if case.behavior_fn is None and not case.behavior:
+        layers.append(LayerResult("behavior", "pass", "no executable checks on this case"))
+        return EvalResult(case.id, tuple(layers))
+    try:
+        if case.behavior_fn is not None:
+            case.behavior_fn(blob)
+            detail = "custom prose check passed"
+        else:
+            raise AssertionError("prose cases cannot run module BehaviorCheck oracles")
+    except Exception as exc:
+        layers.append(LayerResult("behavior", "fail", f"{type(exc).__name__}: {exc}"))
+        return EvalResult(case.id, tuple(layers))
+    layers.append(LayerResult("behavior", "pass", detail))
+    return EvalResult(case.id, tuple(layers))
+
+
+def _phrase_present(haystack: str, phrase: str) -> bool:
+    """Whole-token match for short words so ``this`` does not satisfy ``hi``."""
+    token = phrase.lower()
+    text = haystack.lower()
+    if " " in token:
+        return token in text
+    return re.search(rf"(?<![a-z0-9_]){re.escape(token)}(?![a-z0-9_])", text) is not None
 
 
 def _alias_single_unknown(by_path: dict[str, str], case: EvalCase) -> dict[str, str]:

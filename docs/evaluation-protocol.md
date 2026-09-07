@@ -57,6 +57,12 @@ The same scorer runs against:
 | `whitespace_extract_vague` | `local_refactor` | **Same checker**, vaguer prompt. Measures prompt-contract, not a looser oracle |
 | `multi_file_rename` | `local_refactor` | Two files must be returned; `add` → `plus`; `total([1,2,3]) == 6` |
 | `test_add_execute` | `local_generate_tests` | Generated tests are imported with `add.py` and the `test_*` functions are called |
+| `move_function_imports` | `local_refactor` | Move `clamp` into `bounds.py` and update `report.py` imports |
+| `extract_shared_parser` | `local_refactor` | Extract `parse_fields` into `csv_parse.py`; both callers import it |
+| `split_pipeline` | `local_refactor` | Split `run` into `load.py` / `transform.py` / `pipeline.py` |
+| `implement_clamp` | `local_code` | Implement `clamp` from a spec, no starter file |
+| `explain_clamp` | `local_explain` | Prose: names the function and bounds; mentions clipping |
+| `review_login` | `local_review` | Prose first-pass: flags None and missing auth. **Not** an apply |
 
 Known-fail fixtures are part of the corpus. They prove the scorer can
 tell layers apart:
@@ -136,9 +142,15 @@ CI uses a scripted reviewer. These tests do **not** call Cursor, GPT, or
 Claude, and they do not prove that a live IDE agent followed the rule
 file. They prove the state machine the agent is supposed to follow.
 
+The same gate runs after **real stdio MCP** calls when you pass
+`--orchestrate`. Stub Ollama still supplies the worker text. Keep jobs
+never call `local_*`. Accept / rewrite / reject then run on the scored
+candidate.
+
 ```bash
-PYTHONPATH=src .venv/bin/python -m unittest tests.test_eval_orchestrate -v
+PYTHONPATH=src .venv/bin/python -m unittest tests.test_eval_orchestrate tests.test_eval_mcp_orchestrate -v
 .venv/bin/python scripts/run_orchestration.py
+.venv/bin/python scripts/run_harness.py --backend stub --profile golden --orchestrate
 ```
 
 ## Commands
@@ -149,7 +161,10 @@ Fixture protocol (no GPU; this is what Cloud Agents can run):
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python scripts/run_eval.py
 .venv/bin/python scripts/run_orchestration.py
+.venv/bin/python scripts/run_harness.py --backend stub --profile golden --orchestrate --fast-ms 1 --strong-ms 1
 ```
+
+GitHub Actions (`.github/workflows/tests.yml`) runs the same no-GPU path on every push.
 
 Live protocol (workstation with Ollama):
 
@@ -174,7 +189,9 @@ After repeated live runs, a paper may claim:
 - That a vaguer prompt raises structure failures on the same oracle
   (`whitespace_extract` vs `whitespace_extract_vague`).
 - That shape-only test generation overstates success relative to
-  executed tests (`test_add_execute`).
+  executed tests (`test_add_execute`; A6 now uses this checker).
+- That keep-vs-delegate and accept/rewrite/reject are enforceable as a
+  state machine on stub workers plus real stdio MCP.
 
 It still may not claim:
 

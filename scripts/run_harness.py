@@ -14,7 +14,12 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from local_coding_slm.eval.harness import format_summary, run_campaign  # noqa: E402
+from local_coding_slm.eval.harness import (  # noqa: E402
+    format_orchestrated,
+    format_summary,
+    run_campaign,
+    run_orchestrated_campaign,
+)
 from local_coding_slm.eval.record import summarize, write_jsonl  # noqa: E402
 
 
@@ -23,15 +28,54 @@ def main() -> None:
     parser.add_argument("--backend", choices=("stub", "live"), default="stub")
     parser.add_argument("--profile", choices=("golden", "observed"), default="golden")
     parser.add_argument("--case", action="append", dest="case_ids", default=None)
+    parser.add_argument("--job", action="append", dest="job_ids", default=None)
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--fast-ms", type=float, default=8.0)
     parser.add_argument("--strong-ms", type=float, default=25.0)
     parser.add_argument(
+        "--orchestrate",
+        action="store_true",
+        help="Route + MCP local loop + premium apply gate (scripted reviewer)",
+    )
+    parser.add_argument(
         "--out",
         default="",
-        help="Directory for attempts.jsonl and summary.json (gitignored eval-runs/)",
+        help="Directory for JSONL/JSON summaries (gitignored eval-runs/)",
     )
     args = parser.parse_args()
+    if args.orchestrate:
+        results = asyncio.run(
+            run_orchestrated_campaign(
+                backend=args.backend,
+                profile=args.profile,
+                job_ids=args.job_ids,
+                fast_ms=args.fast_ms,
+                strong_ms=args.strong_ms,
+            )
+        )
+        print(format_orchestrated(results))
+        if args.out:
+            dest = Path(args.out)
+            dest.mkdir(parents=True, exist_ok=True)
+            payload = [
+                {
+                    "job": item.job,
+                    "delegated": item.delegated,
+                    "route": item.route_reason,
+                    "outcome": item.outcome,
+                    "applied": item.applied,
+                    "source": item.apply_source,
+                    "models": list(item.local_models),
+                    "review": item.review_decision,
+                }
+                for item in results
+            ]
+            (dest / "orchestrated.json").write_text(
+                json.dumps(payload, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            print(f"wrote {dest / 'orchestrated.json'}")
+        raise SystemExit(0 if results else 1)
     rows = asyncio.run(
         run_campaign(
             backend=args.backend,

@@ -721,9 +721,10 @@ retry as pass-at-one.
 The local harness (`scripts/run_harness.py`) measures fast→strong failover
 after a task is already delegated. Routing, keep-vs-delegate, and the
 premium accept/rewrite/reject apply gate are the orchestrator tests
-(`tests/test_eval_orchestrate.py`, `scripts/run_orchestration.py`). Those
-use a scripted stand-in for the main LLM; they do not call Cursor or
-another hosted API.
+(`tests/test_eval_orchestrate.py`, `scripts/run_orchestration.py`).
+`--orchestrate` runs that gate after real stdio MCP (stub or live worker).
+CI uses a scripted stand-in for the main LLM; it does not call Cursor or
+another hosted API. GitHub Actions runs the no-GPU path on every push.
 
 Only after that, consider automatic task classification.
 
@@ -760,7 +761,7 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 | A3 | Chat prompt to the strong model | Completes; GPU or GPU+RAM is acceptable |
 | A4 | Workstation reaches Ollama through SSH; an unauthorized LAN client cannot reach 11434 | No direct LAN exposure; skip if same-machine |
 | A5 | `local_status` MCP tool | Reports both models and the configured base URL host *without* requiring that URL in git |
-| A6 | `local_generate_tests` with one small function | Returns a test file / diff the premium agent can apply |
+| A6 | `local_generate_tests` with `test_add_execute` | Four eval layers pass, including executed `test_*` functions. A `def test` substring is not enough |
 | A7 | Cursor Agent | Premium model calls a `local_*` tool on a mechanical prompt |
 | A8 | Copilot Agent (VS Code) | Same tool appears and runs |
 | A9 | Claude Code local | `claude mcp list` shows `local-coding-slm` connected |

@@ -6,7 +6,7 @@ import os
 import unittest
 from urllib.request import urlopen
 
-from local_coding_slm.eval.cases import CASES_BY_ID, WHITESPACE_TASK
+from local_coding_slm.eval.cases import CASES_BY_ID, SEED_CASE_IDS, WHITESPACE_TASK
 from local_coding_slm.eval.harness import run_campaign
 from local_coding_slm.eval.policy import next_plan
 from local_coding_slm.eval.record import AttemptRecord, summarize
@@ -118,6 +118,7 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
         rows = await run_campaign(
             backend="stub",
             profile="observed",
+            case_ids=list(SEED_CASE_IDS),
             fast_ms=1,
             strong_ms=1,
         )

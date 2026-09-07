@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e .
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: src
+      - name: Fixture corpus
+        run: python scripts/run_eval.py
+      - name: Scripted orchestrator
+        run: python scripts/run_orchestration.py
+      - name: Stub MCP golden
+        run: python scripts/run_harness.py --backend stub --profile golden --fast-ms 1 --strong-ms 1
+      - name: Stub MCP + apply gate
+        run: python scripts/run_harness.py --backend stub --profile golden --orchestrate --fast-ms 1 --strong-ms 1
