@@ -8,5 +8,5 @@ __pycache__/
 .venv/
 venv/
 .DS_Store
-.local-ollama/
+eval-runs/
 *.local.md

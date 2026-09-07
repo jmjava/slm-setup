@@ -10,11 +10,11 @@ LAN addresses, or SKUs here.
 | --- | --- | --- |
 | 1 — inference host | Done on the workstation lab | Ollama + starter tags on a private GPU |
 | 2 — MCP bridge | Done | `local-coding-slm` stdio tools; Cursor / Copilot / Claude adapters |
-| 3 — measure | Informal log started | Success rate, latency, escalation; no auto-classifier yet |
+| 3 — measure | Protocol + fixture corpus committed; live rates still informal | Layered scoring; no auto-classifier yet |
 | T12 second NVIDIA host | Blocked on host power | WSL GPU via SSH; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
 
-Finish Phase 3 measurement and the existing second-host checks before treating
-Halo as the next lab.
+Finish Phase 3 measurement (layered live rates on the committed corpus)
+and the existing second-host checks before treating Halo as the next lab.
 
 ## Phase 4 — Halo host profile (future)
 

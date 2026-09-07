@@ -137,6 +137,7 @@ It does not yet support these broader claims:
 - The observed timings predict another machine or backend.
 - A single successful semantic case establishes a general success rate.
 
-The next useful step is a committed corpus of representative localized and
-multi-file refactors, run repeatedly through the same semantic checks on the
-current host and later on Halo.
+The next useful step is repeated live runs of
+[docs/evaluation-protocol.md](evaluation-protocol.md) on this host, then on
+Halo: same corpus, first failing layer, no folding of retries into
+pass-at-one.
