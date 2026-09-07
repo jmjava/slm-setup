@@ -76,6 +76,7 @@ connected through SSH local forwarding.
    PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
    .venv/bin/python scripts/run_eval.py
    .venv/bin/python scripts/run_harness.py --backend stub --profile observed --out eval-runs/observed
+   .venv/bin/python scripts/run_orchestration.py
    ```
 
 6. Deployment safety checks (no GPU required; inspects this host only):

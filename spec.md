@@ -718,6 +718,13 @@ cloud/CI with `scripts/run_eval.py`. Repeat live runs on the workstation
 with `--live` and record the first failing layer. Do not treat a successful
 retry as pass-at-one.
 
+The local harness (`scripts/run_harness.py`) measures fast→strong failover
+after a task is already delegated. Routing, keep-vs-delegate, and the
+premium accept/rewrite/reject apply gate are the orchestrator tests
+(`tests/test_eval_orchestrate.py`, `scripts/run_orchestration.py`). Those
+use a scripted stand-in for the main LLM; they do not call Cursor or
+another hosted API.
+
 Only after that, consider automatic task classification.
 
 ### Phase 4 — Halo-class AMD host (future)
