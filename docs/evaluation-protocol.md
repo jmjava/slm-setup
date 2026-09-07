@@ -68,6 +68,48 @@ tell layers apart:
 - `ERROR:` payload → transport fail
 - unified diff only → format pass, structure skipped
 
+## Measurement harness
+
+Fixtures prove the scorer. They do not time a tool call or apply the
+retry policy. `scripts/run_harness.py` does that:
+
+1. Call the real stdio MCP server (`local_refactor` / `local_generate_tests`).
+2. Score the response on the four layers.
+3. Retry or escalate the way a premium agent should: fast first, one
+   same-model repair (format or structure reminder), then strong.
+4. Write one JSONL row per attempt: `mcp_ms`, `score_ms`, `passed`,
+   `first_failure`, `pass_at`, model. No raw transcripts unless you keep
+   a local copy yourself.
+
+Two backends, one schema:
+
+| Backend | When | What the clock measures |
+| --- | --- | --- |
+| `--backend stub` | Cloud / CI, no GPU | Real MCP + HTTP + scoring. Generation time is a loopback stub with scripted replies and `--fast-ms` / `--strong-ms` delays. |
+| `--backend live` | Workstation with Ollama | The same loop against the configured private runtime. Those `mcp_ms` values are the paper's model timings. |
+
+Stub profiles (deterministic **workers**, not model-quality claims):
+
+- `golden` — first attempt returns the passing fixture. Use this to time the bridge.
+- `observed` — replays the failure layers we already documented (missing fence, nested helper, partial multi-file, wrong test assert), then recovers via repair/escalation. Use this to time the policy.
+
+```bash
+# Cloud-safe: simulated generation, real MCP measurements
+.venv/bin/python scripts/run_harness.py --backend stub --profile golden
+.venv/bin/python scripts/run_harness.py --backend stub --profile observed --out eval-runs/observed
+.venv/bin/python scripts/run_harness.py --backend stub --profile golden --repeat 5 --out eval-runs/load
+
+# Workstation: real Ollama
+.venv/bin/python scripts/run_harness.py --backend live --out eval-runs/live-fast
+```
+
+`eval-runs/` is gitignored. Summaries may be copied into dated notes;
+omit hostnames and raw completions.
+
+Report `pass@1` separately from `pass@end`. Escalation rate is the
+fraction of cases that called `strong`. Stub `mcp_ms` is not GPU
+latency. Live `mcp_ms` is.
+
 ## Commands
 
 Fixture protocol (no GPU; this is what Cloud Agents can run):

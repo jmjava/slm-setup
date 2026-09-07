@@ -652,7 +652,7 @@ OLLAMA_BASE_URL
 │       ├── ollama_client.py
 │       ├── envfile.py
 │       ├── prompts.py
-│       └── eval/                    ← layered scorer + fixture corpus
+│       └── eval/                    ← scorer, corpus, stub Ollama, harness
 ├── docs/
 │   ├── roadmap.md                   ← current vs future phases
 │   ├── c4.md                        ← C4 context / container / component
@@ -663,13 +663,15 @@ OLLAMA_BASE_URL
 │   ├── prove_acceptance.py
 │   ├── prove_refactor_acceptance.py
 │   ├── run_eval.py                  ← fixture corpus; --live on the workstation
+│   ├── run_harness.py               ← timed MCP campaign (stub or live)
 │   └── check_deployment_safety.py   ← defensive bind / tag / git checks
 └── tests/
     ├── test_ollama_client.py
     ├── test_envfile.py
     ├── test_safety.py
     ├── test_eval_extract.py
-    └── test_eval_score.py
+    ├── test_eval_score.py
+    └── test_eval_harness.py
 ```
 
 Phase 1 of this repository is the spec, public-safe examples, and a running

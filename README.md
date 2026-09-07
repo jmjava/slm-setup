@@ -75,6 +75,7 @@ connected through SSH local forwarding.
    ```bash
    PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
    .venv/bin/python scripts/run_eval.py
+   .venv/bin/python scripts/run_harness.py --backend stub --profile observed --out eval-runs/observed
    ```
 
 6. Deployment safety checks (no GPU required; inspects this host only):
@@ -98,12 +99,13 @@ connected through SSH local forwarding.
    .venv/bin/python scripts/prove_refactor_acceptance.py --model strong
    ```
 
-The unit suite proves deterministic client, safety, and evaluation-scorer
-behavior. The live acceptance scripts are the evidence that the stdio MCP
-server can reach the configured Ollama runtime and produce usable output; do
-not describe the unit suite as exercising Ollama. Layered scoring and the
-fixture corpus: [evaluation protocol](docs/evaluation-protocol.md). See the
-dated [local acceptance results](docs/local-acceptance-results-2026-09-06.md)
+The unit suite proves deterministic client, safety, evaluation-scorer,
+and harness behavior. The live acceptance scripts are the evidence that the
+stdio MCP server can reach the configured Ollama runtime and produce usable
+output; do not describe the unit suite as exercising Ollama. Layered scoring,
+the fixture corpus, and the stub/live harness:
+[evaluation protocol](docs/evaluation-protocol.md). See the dated
+[local acceptance results](docs/local-acceptance-results-2026-09-06.md)
 for observations, retries, and limits on what these checks establish.
 
 Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot

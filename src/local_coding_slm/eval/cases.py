@@ -309,6 +309,13 @@ CASES: tuple[EvalCase, ...] = (
 
 CASES_BY_ID = {case.id: case for case in CASES}
 
+GOLDEN_FOR_CASE = {
+    "whitespace_extract": WHITESPACE_GOLDEN,
+    "whitespace_extract_vague": WHITESPACE_GOLDEN,
+    "multi_file_rename": MULTI_FILE_GOLDEN,
+    "test_add_execute": TEST_ADD_GOLDEN,
+}
+
 
 @dataclass(frozen=True)
 class Fixture:
