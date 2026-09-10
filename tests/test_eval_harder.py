@@ -21,7 +21,7 @@ def _fixture(name: str):
 
 class HarderMultifileCorpusTests(unittest.TestCase):
     def test_harder_cases_span_more_than_one_file(self) -> None:
-        self.assertEqual(len(HARDER_CASE_IDS), 4)
+        self.assertEqual(len(HARDER_CASE_IDS), 5)
         for case_id in HARDER_CASE_IDS:
             with self.subTest(case_id=case_id):
                 case = CASES_BY_ID[case_id]
@@ -35,6 +35,7 @@ class HarderMultifileCorpusTests(unittest.TestCase):
             "rename_field_golden",
             "widen_return_golden",
             "rename_kwarg_golden",
+            "rename_payload_golden",
         ):
             with self.subTest(fixture=name):
                 fixture = _fixture(name)
@@ -49,6 +50,7 @@ class HarderMultifileCorpusTests(unittest.TestCase):
             "rename_field_alias",
             "widen_return_int",
             "rename_kwarg_alias",
+            "rename_payload_alias",
         ):
             with self.subTest(fixture=name):
                 fixture = _fixture(name)
@@ -63,6 +65,7 @@ class HarderMultifileCorpusTests(unittest.TestCase):
             "rename_field_format",
             "widen_return_wrong_rate",
             "rename_kwarg_separator",
+            "rename_payload_prefix",
         ):
             with self.subTest(fixture=name):
                 fixture = _fixture(name)
@@ -95,6 +98,7 @@ class HarderMultifileCorpusTests(unittest.TestCase):
             "rename_field_partial",
             "widen_return_partial",
             "rename_kwarg_partial",
+            "rename_payload_partial",
         ):
             with self.subTest(fixture=name):
                 fixture = _fixture(name)
