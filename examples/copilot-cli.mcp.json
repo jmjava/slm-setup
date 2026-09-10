@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "local-coding-slm": {
+      "type": "stdio",
+      "command": "<absolute-path-to-this-clone>/scripts/run_mcp.sh"
+    }
+  }
+}
