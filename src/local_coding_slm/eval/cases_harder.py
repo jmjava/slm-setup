@@ -2,8 +2,8 @@
 
 These stay bounded (2–3 files). They isolate failure modes the seed and
 extended corpus do not: leftover type aliases, catch-site drift, field
-aliases, a leftover keyword-parameter alias, and a public facade that
-must survive a helper signature change.
+aliases, a leftover keyword-parameter alias, a leftover payload-key
+alias, and a public facade that must survive a helper signature change.
 
 Golden strings are fixtures for the scorer and stub Ollama, not live
 model dumps. Live rates are not claimed here.
@@ -20,6 +20,7 @@ HARDER_CASE_IDS: tuple[str, ...] = (
     "rename_dataclass_field",
     "widen_return_keep_facade",
     "rename_kwarg_across_files",
+    "rename_payload_key_across_files",
 )
 
 
@@ -82,6 +83,12 @@ def _function_arg_names(tree: ast.AST, name: str) -> tuple[set[str], bool]:
 def _keyword_used(tree: ast.AST, name: str) -> bool:
     return any(
         isinstance(node, ast.keyword) and node.arg == name for node in ast.walk(tree)
+    )
+
+
+def _string_used(tree: ast.AST, value: str) -> bool:
+    return any(
+        isinstance(node, ast.Constant) and node.value == value for node in ast.walk(tree)
     )
 
 
@@ -762,6 +769,109 @@ def _kwarg_renamed(by_path: dict[str, str]) -> str | None:
     return None
 
 
+# --- rename payload key user_id -> account_id across builder and reader ---
+
+RECORD_SOURCE = """\
+def make(name: str) -> dict[str, str]:
+    return {"user_id": name}
+"""
+
+LABEL_SOURCE = """\
+from record import make
+
+
+def label(name: str) -> str:
+    payload = make(name)
+    return f"acct:{payload['user_id']}"
+"""
+
+RENAME_PAYLOAD_TASK = (
+    "Rename the payload key user_id to account_id in record.py and label.py. "
+    "Update make() so it writes account_id only, and label() so it reads "
+    "account_id only. Do not keep user_id as a dict key, .get() fallback, "
+    "or compatibility alias. Preserve label('ada') == 'acct:ada', "
+    "label('') == 'acct:', and make('ada') == {'account_id': 'ada'}. "
+    "Return two fenced Python files with path comments record.py and "
+    "label.py, no prose."
+)
+
+RENAME_PAYLOAD_GOLDEN = '''\
+```python
+# record.py
+def make(name: str) -> dict[str, str]:
+    return {"account_id": name}
+```
+
+```python
+# label.py
+from record import make
+
+
+def label(name: str) -> str:
+    payload = make(name)
+    return f"acct:{payload['account_id']}"
+```
+'''
+
+RENAME_PAYLOAD_PARTIAL = '''\
+```python
+# record.py
+def make(name: str) -> dict[str, str]:
+    return {"account_id": name}
+```
+'''
+
+RENAME_PAYLOAD_ALIAS = '''\
+```python
+# record.py
+def make(name: str) -> dict[str, str]:
+    return {"account_id": name, "user_id": name}
+```
+
+```python
+# label.py
+from record import make
+
+
+def label(name: str) -> str:
+    payload = make(name)
+    return f"acct:{payload.get('account_id') or payload.get('user_id')}"
+```
+'''
+
+RENAME_PAYLOAD_PREFIX = '''\
+```python
+# record.py
+def make(name: str) -> dict[str, str]:
+    return {"account_id": name}
+```
+
+```python
+# label.py
+from record import make
+
+
+def label(name: str) -> str:
+    payload = make(name)
+    return f"user:{payload['account_id']}"
+```
+'''
+
+
+def _payload_key_renamed(by_path: dict[str, str]) -> str | None:
+    try:
+        record = ast.parse(by_path.get("record.py", ""))
+        label = ast.parse(by_path.get("label.py", ""))
+    except SyntaxError as exc:
+        return f"unparseable Python: {exc.msg}"
+    for path, tree in (("record.py", record), ("label.py", label)):
+        if _string_used(tree, "user_id") or _name_used(tree, "user_id"):
+            return f"{path} still references user_id; do not keep a key alias"
+        if not _string_used(tree, "account_id"):
+            return f"{path} must use the account_id payload key"
+    return None
+
+
 HARDER_CASES: tuple[EvalCase, ...] = (
     EvalCase(
         id="rename_exception_across_files",
@@ -834,6 +944,24 @@ HARDER_CASES: tuple[EvalCase, ...] = (
         ),
         max_tokens=1200,
     ),
+    EvalCase(
+        id="rename_payload_key_across_files",
+        tool="local_refactor",
+        task=RENAME_PAYLOAD_TASK,
+        files=(
+            {"path": "record.py", "content": RECORD_SOURCE},
+            {"path": "label.py", "content": LABEL_SOURCE},
+        ),
+        required_paths=("record.py", "label.py"),
+        required_top_level=("make", "label"),
+        extra_structure=_payload_key_renamed,
+        behavior=(
+            BehaviorCheck("label", "label", ("ada",), "acct:ada"),
+            BehaviorCheck("label", "label", ("",), "acct:"),
+            BehaviorCheck("record", "make", ("ada",), {"account_id": "ada"}),
+        ),
+        max_tokens=1200,
+    ),
 )
 
 HARDER_GOLDEN = {
@@ -841,6 +969,7 @@ HARDER_GOLDEN = {
     "rename_dataclass_field": RENAME_FIELD_GOLDEN,
     "widen_return_keep_facade": WIDEN_RETURN_GOLDEN,
     "rename_kwarg_across_files": RENAME_KWARG_GOLDEN,
+    "rename_payload_key_across_files": RENAME_PAYLOAD_GOLDEN,
 }
 
 HARDER_OBSERVED_FIRST = {
@@ -848,4 +977,5 @@ HARDER_OBSERVED_FIRST = {
     "rename_dataclass_field": RENAME_FIELD_PARTIAL,
     "widen_return_keep_facade": WIDEN_RETURN_PARTIAL,
     "rename_kwarg_across_files": RENAME_KWARG_PARTIAL,
+    "rename_payload_key_across_files": RENAME_PAYLOAD_PARTIAL,
 }
