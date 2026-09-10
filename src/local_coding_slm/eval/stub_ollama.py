@@ -18,6 +18,7 @@ from local_coding_slm.eval.cases import (
     WHITESPACE_NO_FENCE,
 )
 from local_coding_slm.eval.cases_extended import OBSERVED_FIRST
+from local_coding_slm.eval.cases_harder import HARDER_OBSERVED_FIRST
 from local_coding_slm.ollama_client import DEFAULT_FAST_MODEL, DEFAULT_STRONG_MODEL
 
 
@@ -44,6 +45,7 @@ def scripted_content(case_id: str, model_choice: str, visit: int, profile: str) 
         "whitespace_extract": WHITESPACE_NO_FENCE,
         "multi_file_rename": MULTI_FILE_PARTIAL,
         **OBSERVED_FIRST,
+        **HARDER_OBSERVED_FIRST,
     }
     if model_choice == "fast" and visit == 1 and case_id in first_fail:
         return first_fail[case_id]
