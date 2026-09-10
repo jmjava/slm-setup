@@ -2,7 +2,8 @@
 
 These stay bounded (2–3 files). They isolate failure modes the seed and
 extended corpus do not: leftover type aliases, catch-site drift, field
-aliases, and a public facade that must survive a helper signature change.
+aliases, a leftover keyword-parameter alias, and a public facade that
+must survive a helper signature change.
 
 Golden strings are fixtures for the scorer and stub Ollama, not live
 model dumps. Live rates are not claimed here.
@@ -18,6 +19,7 @@ HARDER_CASE_IDS: tuple[str, ...] = (
     "rename_exception_across_files",
     "rename_dataclass_field",
     "widen_return_keep_facade",
+    "rename_kwarg_across_files",
 )
 
 
@@ -57,6 +59,30 @@ def _excepts_named(tree: ast.AST, name: str) -> bool:
         if isinstance(node.type, ast.Name) and node.type.id == name:
             return True
     return False
+
+
+def _function_arg_names(tree: ast.AST, name: str) -> tuple[set[str], bool]:
+    if not isinstance(tree, ast.Module):
+        return set(), False
+    for node in tree.body:
+        if not isinstance(node, ast.FunctionDef) or node.name != name:
+            continue
+        names = {arg.arg for arg in node.args.posonlyargs}
+        names.update(arg.arg for arg in node.args.args)
+        names.update(arg.arg for arg in node.args.kwonlyargs)
+        if node.args.vararg is not None:
+            names.add(node.args.vararg.arg)
+        has_kwargs = node.args.kwarg is not None
+        if node.args.kwarg is not None:
+            names.add(node.args.kwarg.arg)
+        return names, has_kwargs
+    return set(), False
+
+
+def _keyword_used(tree: ast.AST, name: str) -> bool:
+    return any(
+        isinstance(node, ast.keyword) and node.arg == name for node in ast.walk(tree)
+    )
 
 
 def _function_returns_tuple(tree: ast.AST, name: str) -> bool:
@@ -630,6 +656,112 @@ def _widen_structure(by_path: dict[str, str]) -> str | None:
     return None
 
 
+# --- rename send(subject=) -> send(title=); keep alert facade ---
+
+MAIL_SOURCE = """\
+def send(to: str, subject: str) -> str:
+    return f"{to}:{subject}"
+"""
+
+NOTIFY_SOURCE = """\
+from mail import send
+
+
+def alert(addr: str, topic: str) -> str:
+    return send(to=addr, subject=topic)
+"""
+
+RENAME_KWARG_TASK = (
+    "Rename the subject parameter of mail.send to title in mail.py and "
+    "notify.py. Update notify.alert so it calls send with title=, not "
+    "subject=. Do not keep subject as a parameter, default, **kwargs "
+    "shim, or keyword. alert(addr, topic) must keep the same public "
+    "signature. Preserve alert('a@b', 'hi') == 'a@b:hi' and "
+    "send('x', 'y') == 'x:y' (colon join). Return two fenced Python "
+    "files with path comments mail.py and notify.py, no prose."
+)
+
+RENAME_KWARG_GOLDEN = '''\
+```python
+# mail.py
+def send(to: str, title: str) -> str:
+    return f"{to}:{title}"
+```
+
+```python
+# notify.py
+from mail import send
+
+
+def alert(addr: str, topic: str) -> str:
+    return send(to=addr, title=topic)
+```
+'''
+
+RENAME_KWARG_PARTIAL = '''\
+```python
+# mail.py
+def send(to: str, title: str) -> str:
+    return f"{to}:{title}"
+```
+'''
+
+RENAME_KWARG_ALIAS = '''\
+```python
+# mail.py
+def send(to: str, title: str = "", subject: str = "") -> str:
+    return f"{to}:{title or subject}"
+```
+
+```python
+# notify.py
+from mail import send
+
+
+def alert(addr: str, topic: str) -> str:
+    return send(to=addr, subject=topic)
+```
+'''
+
+RENAME_KWARG_SEPARATOR = '''\
+```python
+# mail.py
+def send(to: str, title: str) -> str:
+    return f"{to}|{title}"
+```
+
+```python
+# notify.py
+from mail import send
+
+
+def alert(addr: str, topic: str) -> str:
+    return send(to=addr, title=topic)
+```
+'''
+
+
+def _kwarg_renamed(by_path: dict[str, str]) -> str | None:
+    try:
+        mail = ast.parse(by_path.get("mail.py", ""))
+        notify = ast.parse(by_path.get("notify.py", ""))
+    except SyntaxError as exc:
+        return f"unparseable Python: {exc.msg}"
+    args, has_kwargs = _function_arg_names(mail, "send")
+    if "title" not in args:
+        return "mail.send must take a title parameter"
+    if "subject" in args:
+        return "mail.send still accepts subject; do not keep a parameter alias"
+    if has_kwargs:
+        return "mail.send must not use **kwargs as a subject alias"
+    for path, tree in (("mail.py", mail), ("notify.py", notify)):
+        if _name_used(tree, "subject") or _keyword_used(tree, "subject"):
+            return f"{path} still references subject; do not keep an alias"
+    if not _keyword_used(notify, "title"):
+        return "notify.alert must pass title= to send"
+    return None
+
+
 HARDER_CASES: tuple[EvalCase, ...] = (
     EvalCase(
         id="rename_exception_across_files",
@@ -684,16 +816,36 @@ HARDER_CASES: tuple[EvalCase, ...] = (
         ),
         max_tokens=1400,
     ),
+    EvalCase(
+        id="rename_kwarg_across_files",
+        tool="local_refactor",
+        task=RENAME_KWARG_TASK,
+        files=(
+            {"path": "mail.py", "content": MAIL_SOURCE},
+            {"path": "notify.py", "content": NOTIFY_SOURCE},
+        ),
+        required_paths=("mail.py", "notify.py"),
+        required_top_level=("send", "alert"),
+        extra_structure=_kwarg_renamed,
+        behavior=(
+            BehaviorCheck("notify", "alert", ("a@b", "hi"), "a@b:hi"),
+            BehaviorCheck("notify", "alert", ("", ""), ":"),
+            BehaviorCheck("mail", "send", ("x", "y"), "x:y"),
+        ),
+        max_tokens=1200,
+    ),
 )
 
 HARDER_GOLDEN = {
     "rename_exception_across_files": RENAME_EXCEPTION_GOLDEN,
     "rename_dataclass_field": RENAME_FIELD_GOLDEN,
     "widen_return_keep_facade": WIDEN_RETURN_GOLDEN,
+    "rename_kwarg_across_files": RENAME_KWARG_GOLDEN,
 }
 
 HARDER_OBSERVED_FIRST = {
     "rename_exception_across_files": RENAME_EXCEPTION_PARTIAL,
     "rename_dataclass_field": RENAME_FIELD_PARTIAL,
     "widen_return_keep_facade": WIDEN_RETURN_PARTIAL,
+    "rename_kwarg_across_files": RENAME_KWARG_PARTIAL,
 }

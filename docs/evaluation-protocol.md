@@ -63,6 +63,7 @@ The same scorer runs against:
 | `rename_exception_across_files` | `local_refactor` | Rename `QuotaError` → `LimitError` across raise and catch; no alias |
 | `rename_dataclass_field` | `local_refactor` | Rename `Person.years` → `age` in producer and consumer; no property alias |
 | `widen_return_keep_facade` | `local_refactor` | `apply_discount` returns `(discounted, saved)`; `line_total` / `savings` stay ints |
+| `rename_kwarg_across_files` | `local_refactor` | Rename `send(subject=)` → `send(title=)`; no leftover parameter / `**kwargs` alias |
 | `implement_clamp` | `local_code` | Implement `clamp` from a spec, no starter file |
 | `explain_clamp` | `local_explain` | Prose: names the function and bounds; mentions clipping |
 | `review_login` | `local_review` | Prose first-pass: flags None and missing auth. **Not** an apply |
@@ -77,8 +78,10 @@ tell layers apart:
 - `ERROR:` payload → transport fail
 - unified diff only → format pass, structure skipped
 - leftover `QuotaError` alias or `years` property → structure fail
+- leftover `subject=` parameter / keyword alias → structure fail
 - exception threshold or greeting format drift → behavior fail
 - `apply_discount` still returns an int → structure fail; wrong `DISCOUNT_PERCENT` → behavior fail
+- `send` joins with `|` instead of `:` → behavior fail
 
 ## Measurement harness
 
@@ -211,9 +214,9 @@ After repeated live runs, a paper may claim:
 - Layer-conditional rates on this corpus (format vs structure vs behavior).
 - That a vaguer prompt raises structure failures on the same oracle
   (`whitespace_extract` vs `whitespace_extract_vague`).
-- That leftover type/field aliases, catch-site drift, and a helper
-  signature change that breaks a public facade are distinguishable
-  layers on the harder multi-file suite.
+- That leftover type/field/keyword-parameter aliases, catch-site drift,
+  and a helper signature change that breaks a public facade are
+  distinguishable layers on the harder multi-file suite.
 - That shape-only test generation overstates success relative to
   executed tests (`test_add_execute`; A6 now uses this checker).
 - That keep-vs-delegate and accept/rewrite/reject are enforceable as a

@@ -17,6 +17,7 @@ Cloud-safe stub + apply-gate run:
 | 2026-09-06 | local_refactor | strong | extract module-level whitespace helper | accepted | Real Ollama; generated module parsed and preserved behavior across 3 executed cases; warm run 25.6s; model reported 46% CPU / 54% GPU at 16K context |
 | 2026-09-07 | all local_* eval tools | stub | 10-case corpus + apply gate | accepted / rewritten / rejected per job | Cloud Agent; no GPU; A6 now executes tests |
 | 2026-09-10 | local_refactor | fixtures | harder multi-file suite (3 cases) | scorer only | Offline corpus + runner; no live rate; Halo not started |
+| 2026-09-10 | local_refactor | fixtures | harder suite + `rename_kwarg_across_files` | scorer only | Fourth case; leftover `subject=` alias vs colon-join drift; no live rate |
 
 Columns:
 

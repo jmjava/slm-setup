@@ -110,8 +110,9 @@ connected through SSH local forwarding.
    ```
 
    Harder multi-file cases (exception rename, dataclass field rename, tuple
-   return + facade) are offline by default. `--live` skips with exit 0 when
-   Ollama is down; that skip is not a quality pass:
+   return + facade, keyword-parameter rename) are offline by default.
+   `--live` skips with exit 0 when Ollama is down; that skip is not a
+   quality pass:
 
    ```bash
    .venv/bin/python scripts/prove_multifile_refactor.py
