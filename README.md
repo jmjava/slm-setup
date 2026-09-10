@@ -110,7 +110,8 @@ connected through SSH local forwarding.
    ```
 
    Harder multi-file cases (exception rename, dataclass field rename, tuple
-   return + facade, keyword-parameter rename, payload-key rename) are
+   return + facade, keyword-parameter rename, payload-key rename,
+   env-var rename) are
    offline by default.
    `--live` skips with exit 0 when Ollama is down; that skip is not a
    quality pass:
