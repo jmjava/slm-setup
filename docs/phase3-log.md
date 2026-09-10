@@ -19,6 +19,7 @@ Cloud-safe stub + apply-gate run:
 | 2026-09-10 | local_refactor | fixtures | harder multi-file suite (3 cases) | scorer only | Offline corpus + runner; no live rate; Halo not started |
 | 2026-09-10 | local_refactor | fixtures | harder suite + `rename_kwarg_across_files` | scorer only | Fourth case; leftover `subject=` alias vs colon-join drift; no live rate |
 | 2026-09-10 | local_refactor | fixtures | harder suite + `rename_payload_key_across_files` | scorer only | Fifth case; leftover `user_id` key / `.get()` alias vs `acct:` prefix drift; no live rate |
+| 2026-09-10 | local_refactor | fixtures | harder suite + `rename_env_var_across_files` | scorer only | Sixth case; leftover `APP_TOKEN` getenv / `.get()` alias vs `tok:` prefix drift; no live rate |
 
 Columns:
 

@@ -3,7 +3,8 @@
 These stay bounded (2–3 files). They isolate failure modes the seed and
 extended corpus do not: leftover type aliases, catch-site drift, field
 aliases, a leftover keyword-parameter alias, a leftover payload-key
-alias, and a public facade that must survive a helper signature change.
+alias, a leftover environment-variable name alias, and a public facade
+that must survive a helper signature change.
 
 Golden strings are fixtures for the scorer and stub Ollama, not live
 model dumps. Live rates are not claimed here.
@@ -21,6 +22,7 @@ HARDER_CASE_IDS: tuple[str, ...] = (
     "widen_return_keep_facade",
     "rename_kwarg_across_files",
     "rename_payload_key_across_files",
+    "rename_env_var_across_files",
 )
 
 
@@ -90,6 +92,22 @@ def _string_used(tree: ast.AST, value: str) -> bool:
     return any(
         isinstance(node, ast.Constant) and node.value == value for node in ast.walk(tree)
     )
+
+
+def _assigned_str(tree: ast.AST, name: str) -> str | None:
+    if not isinstance(tree, ast.Module):
+        return None
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+            and node.targets[0].id == name
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            return node.value.value
+    return None
 
 
 def _function_returns_tuple(tree: ast.AST, name: str) -> bool:
@@ -872,6 +890,123 @@ def _payload_key_renamed(by_path: dict[str, str]) -> str | None:
     return None
 
 
+# --- rename env var APP_TOKEN -> APP_SECRET across names and badge ---
+
+NAMES_SOURCE = """\
+TOKEN_VAR = "APP_TOKEN"
+
+
+def read(env: dict[str, str]) -> str:
+    return env[TOKEN_VAR]
+"""
+
+BADGE_SOURCE = """\
+from names import TOKEN_VAR, read
+
+
+def badge(name: str) -> str:
+    return f"tok:{read({TOKEN_VAR: name})}"
+"""
+
+RENAME_ENV_TASK = (
+    "Rename the environment variable name APP_TOKEN to APP_SECRET in "
+    "names.py and badge.py. Update TOKEN_VAR so it is the string "
+    "APP_SECRET only, and keep read() / badge() using TOKEN_VAR. "
+    "Do not keep APP_TOKEN as a constant, dict key, getenv/.get "
+    "fallback, or compatibility alias. Preserve badge('ada') == "
+    "'tok:ada', badge('') == 'tok:', and read({'APP_SECRET': 'ada'}) "
+    "== 'ada'. Return two fenced Python files with path comments "
+    "names.py and badge.py, no prose."
+)
+
+RENAME_ENV_GOLDEN = '''\
+```python
+# names.py
+TOKEN_VAR = "APP_SECRET"
+
+
+def read(env: dict[str, str]) -> str:
+    return env[TOKEN_VAR]
+```
+
+```python
+# badge.py
+from names import TOKEN_VAR, read
+
+
+def badge(name: str) -> str:
+    return f"tok:{read({TOKEN_VAR: name})}"
+```
+'''
+
+RENAME_ENV_PARTIAL = '''\
+```python
+# names.py
+TOKEN_VAR = "APP_SECRET"
+
+
+def read(env: dict[str, str]) -> str:
+    return env[TOKEN_VAR]
+```
+'''
+
+RENAME_ENV_ALIAS = '''\
+```python
+# names.py
+TOKEN_VAR = "APP_SECRET"
+
+
+def read(env: dict[str, str]) -> str:
+    return env.get(TOKEN_VAR) or env.get("APP_TOKEN", "")
+```
+
+```python
+# badge.py
+from names import TOKEN_VAR, read
+
+
+def badge(name: str) -> str:
+    return f"tok:{read({TOKEN_VAR: name}) or read({'APP_TOKEN': name})}"
+```
+'''
+
+RENAME_ENV_PREFIX = '''\
+```python
+# names.py
+TOKEN_VAR = "APP_SECRET"
+
+
+def read(env: dict[str, str]) -> str:
+    return env[TOKEN_VAR]
+```
+
+```python
+# badge.py
+from names import TOKEN_VAR, read
+
+
+def badge(name: str) -> str:
+    return f"env:{read({TOKEN_VAR: name})}"
+```
+'''
+
+
+def _env_var_renamed(by_path: dict[str, str]) -> str | None:
+    try:
+        names = ast.parse(by_path.get("names.py", ""))
+        badge = ast.parse(by_path.get("badge.py", ""))
+    except SyntaxError as exc:
+        return f"unparseable Python: {exc.msg}"
+    if _assigned_str(names, "TOKEN_VAR") != "APP_SECRET":
+        return "names.py must assign TOKEN_VAR = 'APP_SECRET'"
+    for path, tree in (("names.py", names), ("badge.py", badge)):
+        if _string_used(tree, "APP_TOKEN") or _name_used(tree, "APP_TOKEN"):
+            return f"{path} still references APP_TOKEN; do not keep an env-name alias"
+    if not _name_used(badge, "TOKEN_VAR") and not _string_used(badge, "APP_SECRET"):
+        return "badge.py must use TOKEN_VAR or APP_SECRET"
+    return None
+
+
 HARDER_CASES: tuple[EvalCase, ...] = (
     EvalCase(
         id="rename_exception_across_files",
@@ -962,6 +1097,24 @@ HARDER_CASES: tuple[EvalCase, ...] = (
         ),
         max_tokens=1200,
     ),
+    EvalCase(
+        id="rename_env_var_across_files",
+        tool="local_refactor",
+        task=RENAME_ENV_TASK,
+        files=(
+            {"path": "names.py", "content": NAMES_SOURCE},
+            {"path": "badge.py", "content": BADGE_SOURCE},
+        ),
+        required_paths=("names.py", "badge.py"),
+        required_top_level=("read", "badge"),
+        extra_structure=_env_var_renamed,
+        behavior=(
+            BehaviorCheck("badge", "badge", ("ada",), "tok:ada"),
+            BehaviorCheck("badge", "badge", ("",), "tok:"),
+            BehaviorCheck("names", "read", ({"APP_SECRET": "ada"},), "ada"),
+        ),
+        max_tokens=1200,
+    ),
 )
 
 HARDER_GOLDEN = {
@@ -970,6 +1123,7 @@ HARDER_GOLDEN = {
     "widen_return_keep_facade": WIDEN_RETURN_GOLDEN,
     "rename_kwarg_across_files": RENAME_KWARG_GOLDEN,
     "rename_payload_key_across_files": RENAME_PAYLOAD_GOLDEN,
+    "rename_env_var_across_files": RENAME_ENV_GOLDEN,
 }
 
 HARDER_OBSERVED_FIRST = {
@@ -978,4 +1132,5 @@ HARDER_OBSERVED_FIRST = {
     "widen_return_keep_facade": WIDEN_RETURN_PARTIAL,
     "rename_kwarg_across_files": RENAME_KWARG_PARTIAL,
     "rename_payload_key_across_files": RENAME_PAYLOAD_PARTIAL,
+    "rename_env_var_across_files": RENAME_ENV_PARTIAL,
 }
