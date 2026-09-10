@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
@@ -69,6 +70,8 @@ class StubState:
         delay = self.strong_ms if choice == "strong" else self.fast_ms
         if delay > 0:
             time.sleep(delay / 1000.0)
+        if os.environ.get("LOCAL_CODING_SLM_STUB_REFUSE") == "1":
+            return "REFUSED"
         if case_id == "unknown":
             return "I cannot match that task."
         return scripted_content(case_id, choice, self.visits[key], self.profile)

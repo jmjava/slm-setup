@@ -129,7 +129,11 @@ omit hostnames and raw completions.
 
 Report `pass@1` separately from `pass@end`. Escalation rate is the
 fraction of cases that called `strong`. Stub `mcp_ms` is not GPU
-latency. Live `mcp_ms` is.
+latency. Live `mcp_ms` is. `scripts/run_harness.py` still prints the
+table, then exits non-zero when `pass@end` is 0 (or below
+`--min-pass-end`). Printed rows are not a pass. GitHub Actions stub
+MCP golden / apply / failover steps invoke that same script, so a
+stub that refuses every call reddens those steps.
 
 That harness is **local failover after a task was already delegated**.
 It does not prove that the premium model chose to delegate, nor that it

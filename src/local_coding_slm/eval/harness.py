@@ -274,6 +274,31 @@ async def _one_attempt(
     return LocalAttempt(record=record, text=text, scored=scored)
 
 
+def campaign_pass_end(rows: list[AttemptRecord]) -> tuple[float, int]:
+    stats = summarize(rows)
+    return float(stats["pass_end"]), int(stats["cases"])
+
+
+def orchestrated_pass_end(results: list[JobResult]) -> tuple[float, int]:
+    delegated = [item for item in results if item.delegated]
+    n = len(delegated)
+    if n == 0:
+        return 0.0, 0
+    passed = sum(1 for item in delegated if item.local_passed)
+    return passed / n, n
+
+
+def harness_exit_code(
+    pass_end: float,
+    n: int,
+    min_pass_end: float = 0.0,
+) -> int:
+    """Fail-closed: no rows or pass@end of 0 is never success."""
+    if n <= 0 or pass_end <= 0.0 or pass_end < min_pass_end:
+        return 1
+    return 0
+
+
 def format_summary(rows: list[AttemptRecord]) -> str:
     stats = summarize(rows)
     lines = [
@@ -296,9 +321,11 @@ def format_summary(rows: list[AttemptRecord]) -> str:
 
 
 def format_orchestrated(results: list[JobResult]) -> str:
+    pass_end, delegated_n = orchestrated_pass_end(results)
     lines = [
         f"jobs={len(results)} applied={sum(1 for item in results if item.applied)} "
-        f"delegated={sum(1 for item in results if item.delegated)}"
+        f"delegated={sum(1 for item in results if item.delegated)}",
+        f"pass@end={pass_end:.2f} delegated_jobs={delegated_n}",
     ]
     for item in results:
         models = list(item.local_models) or "-"

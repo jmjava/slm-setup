@@ -15,8 +15,11 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from local_coding_slm.eval.harness import (  # noqa: E402
+    campaign_pass_end,
     format_orchestrated,
     format_summary,
+    harness_exit_code,
+    orchestrated_pass_end,
     run_campaign,
     run_orchestrated_campaign,
 )
@@ -36,6 +39,12 @@ def main() -> None:
         "--orchestrate",
         action="store_true",
         help="Route + MCP local loop + premium apply gate (scripted reviewer)",
+    )
+    parser.add_argument(
+        "--min-pass-end",
+        type=float,
+        default=0.0,
+        help="Fail unless pass@end is at least this. pass@end of 0 always fails.",
     )
     parser.add_argument(
         "--out",
@@ -76,7 +85,8 @@ def main() -> None:
                 encoding="utf-8",
             )
             print(f"wrote {dest / 'orchestrated.json'}")
-        raise SystemExit(0 if results else 1)
+        pass_end, n = orchestrated_pass_end(results)
+        raise SystemExit(harness_exit_code(pass_end, n, args.min_pass_end))
     rows = asyncio.run(
         run_campaign(
             backend=args.backend,
@@ -97,7 +107,8 @@ def main() -> None:
             encoding="utf-8",
         )
         print(f"wrote {dest / 'attempts.jsonl'}")
-    raise SystemExit(0 if rows else 1)
+    pass_end, n = campaign_pass_end(rows)
+    raise SystemExit(harness_exit_code(pass_end, n, args.min_pass_end))
 
 
 if __name__ == "__main__":
