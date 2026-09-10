@@ -11,7 +11,8 @@ LAN addresses, or SKUs here.
 | 1 — inference host | Done on the workstation lab | Ollama + starter tags on a private GPU |
 | 2 — MCP bridge | Done | `local-coding-slm` stdio tools; Cursor / Copilot / Claude adapters |
 | 3 — measure | Protocol + expanded corpus + MCP apply gate + CI; live rates still informal | Layered scoring; scripted premium routing/review; no auto-classifier yet |
-| T12 second NVIDIA host | Blocked on host power | WSL GPU via SSH; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
+| T12 Part A second NVIDIA host | Blocked on host power | WSL GPU via SSH; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
+| T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
 
 Finish Phase 3 measurement (layered live rates on the committed corpus)
 and the existing second-host checks before treating Halo as the next lab.

@@ -29,6 +29,8 @@ does bounded, mechanical generation on a private GPU host running
   second GPU host in WSL over SSH, placeholders only.
 - **[examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md)** — future
   AMD Halo-class Ollama host, placeholders only.
+- **[docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md)** —
+  Copilot A8 / Claude A9 clicks. Config in git is not a pass.
 
 ## What this repo is not
 
@@ -116,8 +118,12 @@ the fixture corpus, and the stub/live harness:
 for observations, retries, and limits on what these checks establish.
 
 Cursor loads `.cursor/mcp.json` (interpolation + `envFile` `.env`). Copilot
-uses `.vscode/mcp.json`. Claude Code uses `.mcp.json`. Reload the client after
-the first checkout so it picks up the server.
+uses `.vscode/mcp.json` (VS Code Agent) or
+[`examples/copilot-cli.mcp.json`](examples/copilot-cli.mcp.json) copied to
+`~/.copilot/mcp-config.json` with a local clone path. Claude Code uses
+`.mcp.json`. Reload the client after the first checkout so it picks up the
+server. Copilot A8 and Claude A9 still need the operator clicks in
+[docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md).
 
 ## Security
 

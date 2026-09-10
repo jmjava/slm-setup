@@ -491,13 +491,18 @@ Cursor session.
 Template: [`examples/vscode.mcp.json`](examples/vscode.mcp.json)
 
 The example uses a VS Code `inputs` prompt for `OLLAMA_BASE_URL` so a LAN
-address is never committed.
+address is never committed. The `inputs` array must travel with
+`${input:ollamaBaseUrl}`; a servers-only copy will not prompt.
 
 Visual Studio, JetBrains, Xcode, and Eclipse also support MCP with similar
 stdio/HTTP shapes. Prefer VS Code Agent for the first integration.
 
 **Copilot CLI** can load `~/.copilot/mcp-config.json` with a `mcpServers`
-block. Same stdio command, env from the user shell.
+block. Template: [`examples/copilot-cli.mcp.json`](examples/copilot-cli.mcp.json).
+Replace the clone-path placeholder locally. Do not commit a home path.
+
+Operator clicks for A8 (not automated):
+[docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md).
 
 **Copilot cloud agent / code review (not supported for this server):**
 
@@ -530,6 +535,9 @@ Claude Code prompts once before enabling project-scoped servers from
 `.mcp.json`. Reset with `claude mcp reset-project-choices` if needed.
 
 Put the same routing paragraph from §10.1 in `CLAUDE.md` or a project skill.
+
+Operator clicks for A9 (not automated):
+[docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md).
 
 **Anthropic-hosted Claude Code cloud sessions** run outside this home-LAN
 profile. Organization-configured self-hosted environments are an exception but
@@ -644,6 +652,7 @@ OLLAMA_BASE_URL
 │   ├── cursor.mcp.json
 │   ├── vscode.mcp.json
 │   ├── claude.mcp.json
+│   ├── copilot-cli.mcp.json         ← ~/.copilot/mcp-config.json (placeholder path)
 │   ├── downstairs-wsl-gpu.md        ← WSL GPU host via SSH (placeholders)
 │   └── halo-ryzen-ai.md             ← future Halo-class AMD host (placeholders)
 ├── src/
@@ -657,7 +666,8 @@ OLLAMA_BASE_URL
 │   ├── roadmap.md                   ← current vs future phases
 │   ├── c4.md                        ← C4 context / container / component
 │   ├── phase3-log.md
-│   └── evaluation-protocol.md       ← transport/format/structure/behavior
+│   ├── evaluation-protocol.md       ← transport/format/structure/behavior
+│   └── a8-a9-operator-checklist.md  ← Copilot A8 / Claude A9 clicks (not a pass)
 ├── scripts/
 │   ├── run_mcp.sh                   ← project MCP entry (loads .env)
 │   ├── prove_acceptance.py
@@ -763,8 +773,8 @@ Run from the workstation with `OLLAMA_BASE_URL` set.
 | A5 | `local_status` MCP tool | Reports both models and the configured base URL host *without* requiring that URL in git |
 | A6 | `local_generate_tests` with `test_add_execute` | Four eval layers pass, including executed `test_*` functions. A `def test` substring is not enough |
 | A7 | Cursor Agent | Premium model calls a `local_*` tool on a mechanical prompt |
-| A8 | Copilot Agent (VS Code) | Same tool appears and runs |
-| A9 | Claude Code local | `claude mcp list` shows `local-coding-slm` connected |
+| A8 | Copilot Agent (VS Code) | Same tool appears and runs. Operator-only; see [docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md) |
+| A9 | Claude Code local | `claude mcp list` shows `local-coding-slm` connected. Operator-only; same checklist |
 | A10 | Vendor-hosted cloud agents | This home-lab profile is not configured there; no private URL in repository MCP settings |
 | A11 | `git grep` for private IPs / usernames | No RFC1918 addresses except documented placeholders; no `@` emails |
 | A12 | `scripts/check_deployment_safety.py` | Loopback (or SSH-forward) URL, official tags, `.env` ignored, and no wildcard listener on the workstation; verify a remote host separately |
