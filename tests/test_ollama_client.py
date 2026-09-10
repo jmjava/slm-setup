@@ -9,6 +9,7 @@ from local_coding_slm.ollama_client import (
     OllamaSettings,
     chat,
     format_user_task,
+    is_reachable,
     list_model_names,
     status_report,
 )
@@ -106,6 +107,20 @@ class ClientTests(unittest.TestCase):
         ):
             with self.assertRaises(OllamaError):
                 list_model_names(self.settings)
+
+    def test_is_reachable_true_on_tags(self) -> None:
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            return_value=_FakeResp({"models": []}),
+        ):
+            self.assertTrue(is_reachable(self.settings))
+
+    def test_is_reachable_false_when_down(self) -> None:
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            side_effect=URLError("down"),
+        ):
+            self.assertFalse(is_reachable(self.settings))
 
     def test_format_user_task_includes_files(self) -> None:
         text = format_user_task(

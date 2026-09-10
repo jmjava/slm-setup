@@ -662,6 +662,9 @@ OLLAMA_BASE_URL
 │       ├── envfile.py
 │       ├── prompts.py
 │       └── eval/                    ← scorer, corpus, stub Ollama, harness
+│           ├── cases.py
+│           ├── cases_extended.py
+│           └── cases_harder.py      ← multi-file behavior-preservation suite
 ├── docs/
 │   ├── roadmap.md                   ← current vs future phases
 │   ├── c4.md                        ← C4 context / container / component
@@ -672,6 +675,7 @@ OLLAMA_BASE_URL
 │   ├── run_mcp.sh                   ← project MCP entry (loads .env)
 │   ├── prove_acceptance.py
 │   ├── prove_refactor_acceptance.py
+│   ├── prove_multifile_refactor.py  ← harder multi-file suite; --live skips if down
 │   ├── run_eval.py                  ← fixture corpus; --live on the workstation
 │   ├── run_harness.py               ← timed MCP campaign (stub or live)
 │   └── check_deployment_safety.py   ← defensive bind / tag / git checks
@@ -681,6 +685,7 @@ OLLAMA_BASE_URL
     ├── test_safety.py
     ├── test_eval_extract.py
     ├── test_eval_score.py
+    ├── test_eval_harder.py
     └── test_eval_harness.py
 ```
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Run a semantic local_refactor check against the configured Ollama runtime."""
+"""Run a semantic local_refactor check against the configured Ollama runtime.
+
+Single-file whitespace extract only. For the harder multi-file corpus,
+use ``scripts/prove_multifile_refactor.py`` (offline fixtures by default;
+``--live`` skips when Ollama is down).
+"""
 
 from __future__ import annotations
 

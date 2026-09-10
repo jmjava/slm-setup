@@ -60,6 +60,9 @@ The same scorer runs against:
 | `move_function_imports` | `local_refactor` | Move `clamp` into `bounds.py` and update `report.py` imports |
 | `extract_shared_parser` | `local_refactor` | Extract `parse_fields` into `csv_parse.py`; both callers import it |
 | `split_pipeline` | `local_refactor` | Split `run` into `load.py` / `transform.py` / `pipeline.py` |
+| `rename_exception_across_files` | `local_refactor` | Rename `QuotaError` → `LimitError` across raise and catch; no alias |
+| `rename_dataclass_field` | `local_refactor` | Rename `Person.years` → `age` in producer and consumer; no property alias |
+| `widen_return_keep_facade` | `local_refactor` | `apply_discount` returns `(discounted, saved)`; `line_total` / `savings` stay ints |
 | `implement_clamp` | `local_code` | Implement `clamp` from a spec, no starter file |
 | `explain_clamp` | `local_explain` | Prose: names the function and bounds; mentions clipping |
 | `review_login` | `local_review` | Prose first-pass: flags None and missing auth. **Not** an apply |
@@ -73,6 +76,9 @@ tell layers apart:
 - one of two files → format fail (missing required path)
 - `ERROR:` payload → transport fail
 - unified diff only → format pass, structure skipped
+- leftover `QuotaError` alias or `years` property → structure fail
+- exception threshold or greeting format drift → behavior fail
+- `apply_discount` still returns an int → structure fail; wrong `DISCOUNT_PERCENT` → behavior fail
 
 ## Measurement harness
 
@@ -170,16 +176,21 @@ Fixture protocol (no GPU; this is what Cloud Agents can run):
 ```bash
 PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python scripts/run_eval.py
+.venv/bin/python scripts/run_eval.py --suite harder
+.venv/bin/python scripts/prove_multifile_refactor.py
 .venv/bin/python scripts/run_orchestration.py
 .venv/bin/python scripts/run_harness.py --backend stub --profile golden --orchestrate --fast-ms 1 --strong-ms 1
 ```
 
 GitHub Actions (`.github/workflows/tests.yml`) runs the same no-GPU path on every push.
 
-Live protocol (workstation with Ollama):
+Live protocol (workstation with Ollama). If the server is down, `--live`
+prints `SKIP live` and exits 0. That skip is not a model-quality pass:
 
 ```bash
 .venv/bin/python scripts/run_eval.py --live --model fast
+.venv/bin/python scripts/run_eval.py --live --suite harder --model fast
+.venv/bin/python scripts/prove_multifile_refactor.py --live --model fast
 .venv/bin/python scripts/run_eval.py --live --model strong
 ```
 
@@ -189,7 +200,9 @@ Record live rows in `docs/phase3-log.md` with result
 
 `scripts/prove_refactor_acceptance.py` remains the original single-case
 live script. It now uses the shared fence extractor. Prefer
-`scripts/run_eval.py --live --case whitespace_extract` for new runs.
+`scripts/run_eval.py --live --case whitespace_extract` for that seed.
+The harder multi-file suite is
+`scripts/prove_multifile_refactor.py` (fixtures by default).
 
 ## What this may claim later
 
@@ -198,6 +211,9 @@ After repeated live runs, a paper may claim:
 - Layer-conditional rates on this corpus (format vs structure vs behavior).
 - That a vaguer prompt raises structure failures on the same oracle
   (`whitespace_extract` vs `whitespace_extract_vague`).
+- That leftover type/field aliases, catch-site drift, and a helper
+  signature change that breaks a public facade are distinguishable
+  layers on the harder multi-file suite.
 - That shape-only test generation overstates success relative to
   executed tests (`test_add_execute`; A6 now uses this checker).
 - That keep-vs-delegate and accept/rewrite/reject are enforceable as a

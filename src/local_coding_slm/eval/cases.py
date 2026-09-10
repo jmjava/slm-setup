@@ -20,6 +20,19 @@ from local_coding_slm.eval.cases_extended import (
     EXPLAIN_CLAMP_VAGUE,
     REVIEW_LOGIN_LGTM,
 )
+from local_coding_slm.eval.cases_harder import (
+    HARDER_CASES,
+    HARDER_GOLDEN,
+    RENAME_EXCEPTION_ALIAS,
+    RENAME_EXCEPTION_PARTIAL,
+    RENAME_EXCEPTION_THRESHOLD,
+    RENAME_FIELD_ALIAS,
+    RENAME_FIELD_FORMAT,
+    RENAME_FIELD_PARTIAL,
+    WIDEN_RETURN_INT,
+    WIDEN_RETURN_PARTIAL,
+    WIDEN_RETURN_WRONG_RATE,
+)
 from local_coding_slm.eval.score import BehaviorCheck, EvalCase
 
 WHITESPACE_SOURCE = """\
@@ -319,7 +332,7 @@ CASES: tuple[EvalCase, ...] = (
 )
 
 SEED_CASE_IDS: tuple[str, ...] = tuple(case.id for case in CASES)
-CASES = CASES + EXTENDED_CASES
+CASES = CASES + EXTENDED_CASES + HARDER_CASES
 CASES_BY_ID = {case.id: case for case in CASES}
 
 GOLDEN_FOR_CASE = {
@@ -328,6 +341,7 @@ GOLDEN_FOR_CASE = {
     "multi_file_rename": MULTI_FILE_GOLDEN,
     "test_add_execute": TEST_ADD_GOLDEN,
     **EXTENDED_GOLDEN,
+    **HARDER_GOLDEN,
 }
 
 
@@ -453,5 +467,86 @@ FIXTURES: tuple[Fixture, ...] = (
         REVIEW_LOGIN_LGTM,
         False,
         "structure",
+    ),
+    Fixture(
+        "rename_exception_golden",
+        "rename_exception_across_files",
+        GOLDEN_FOR_CASE["rename_exception_across_files"],
+        True,
+    ),
+    Fixture(
+        "rename_exception_partial",
+        "rename_exception_across_files",
+        RENAME_EXCEPTION_PARTIAL,
+        False,
+        "format",
+    ),
+    Fixture(
+        "rename_exception_alias",
+        "rename_exception_across_files",
+        RENAME_EXCEPTION_ALIAS,
+        False,
+        "structure",
+    ),
+    Fixture(
+        "rename_exception_threshold",
+        "rename_exception_across_files",
+        RENAME_EXCEPTION_THRESHOLD,
+        False,
+        "behavior",
+    ),
+    Fixture(
+        "rename_field_golden",
+        "rename_dataclass_field",
+        GOLDEN_FOR_CASE["rename_dataclass_field"],
+        True,
+    ),
+    Fixture(
+        "rename_field_partial",
+        "rename_dataclass_field",
+        RENAME_FIELD_PARTIAL,
+        False,
+        "format",
+    ),
+    Fixture(
+        "rename_field_alias",
+        "rename_dataclass_field",
+        RENAME_FIELD_ALIAS,
+        False,
+        "structure",
+    ),
+    Fixture(
+        "rename_field_format",
+        "rename_dataclass_field",
+        RENAME_FIELD_FORMAT,
+        False,
+        "behavior",
+    ),
+    Fixture(
+        "widen_return_golden",
+        "widen_return_keep_facade",
+        GOLDEN_FOR_CASE["widen_return_keep_facade"],
+        True,
+    ),
+    Fixture(
+        "widen_return_partial",
+        "widen_return_keep_facade",
+        WIDEN_RETURN_PARTIAL,
+        False,
+        "format",
+    ),
+    Fixture(
+        "widen_return_int",
+        "widen_return_keep_facade",
+        WIDEN_RETURN_INT,
+        False,
+        "structure",
+    ),
+    Fixture(
+        "widen_return_wrong_rate",
+        "widen_return_keep_facade",
+        WIDEN_RETURN_WRONG_RATE,
+        False,
+        "behavior",
     ),
 )

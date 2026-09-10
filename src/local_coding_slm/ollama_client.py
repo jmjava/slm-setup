@@ -101,6 +101,16 @@ def _get_json(url: str, timeout_s: int) -> dict[str, Any]:
     return parsed
 
 
+def is_reachable(settings: OllamaSettings | None = None, timeout_s: int = 2) -> bool:
+    """Return True when ``/api/tags`` answers. Used to skip live eval without a server."""
+    settings = settings or OllamaSettings.from_env()
+    try:
+        _get_json(urljoin(settings.base_url + "/", "api/tags"), timeout_s=timeout_s)
+    except OllamaError:
+        return False
+    return True
+
+
 def list_model_names(settings: OllamaSettings | None = None) -> list[str]:
     settings = settings or OllamaSettings.from_env()
     payload = _get_json(urljoin(settings.base_url + "/", "api/tags"), timeout_s=15)

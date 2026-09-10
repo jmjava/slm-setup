@@ -79,6 +79,7 @@ connected through SSH local forwarding.
    ```bash
    PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
    .venv/bin/python scripts/run_eval.py
+   .venv/bin/python scripts/prove_multifile_refactor.py
    .venv/bin/python scripts/run_harness.py --backend stub --profile observed --out eval-runs/observed
    .venv/bin/python scripts/run_orchestration.py
    .venv/bin/python scripts/run_harness.py --backend stub --profile golden --orchestrate
@@ -106,6 +107,15 @@ connected through SSH local forwarding.
    ```bash
    .venv/bin/python scripts/prove_refactor_acceptance.py --model fast
    .venv/bin/python scripts/prove_refactor_acceptance.py --model strong
+   ```
+
+   Harder multi-file cases (exception rename, dataclass field rename, tuple
+   return + facade) are offline by default. `--live` skips with exit 0 when
+   Ollama is down; that skip is not a quality pass:
+
+   ```bash
+   .venv/bin/python scripts/prove_multifile_refactor.py
+   .venv/bin/python scripts/prove_multifile_refactor.py --live --model fast
    ```
 
 The unit suite proves deterministic client, safety, evaluation-scorer,
