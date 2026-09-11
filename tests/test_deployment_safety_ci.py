@@ -93,6 +93,17 @@ class DeploymentSafetyCiTests(unittest.TestCase):
         self.assertIn("FAIL deployment safety", stdout)
         self.assertNotIn("PASS deployment safety (warnings)", stdout)
 
+    def test_userinfo_and_decimal_ip_fail_deployment_safety(self) -> None:
+        module = _load_script()
+        for url in ("http://127.0.0.1@evil.com", "http://2130706433:11434"):
+            with self.subTest(url=url):
+                with patch.dict(os.environ, {"OLLAMA_BASE_URL": url}):
+                    code, stdout, stderr = _run_main(
+                        module, [str(SCRIPT), "--skip-listen"]
+                    )
+                self.assertEqual(code, 1, stderr)
+                self.assertIn("FAIL deployment safety", stdout)
+
     def test_skip_listen_exits_1_when_checks_fail(self) -> None:
         module = _load_script()
         failed = [

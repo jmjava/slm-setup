@@ -40,6 +40,22 @@ class TestClassifyBaseUrl(unittest.TestCase):
         self.assertEqual(result.status, "fail")
         self.assertIn("hostname", result.message)
 
+    def test_userinfo_and_decimal_ip_tricks_fail(self) -> None:
+        cases = (
+            "http://127.0.0.1@evil.com",
+            "http://2130706433",
+            "http://2130706433:11434",
+        )
+        for url in cases:
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+
+    def test_userinfo_on_loopback_fails(self) -> None:
+        result = classify_base_url("http://user@127.0.0.1:11434")
+        self.assertEqual(result.status, "fail")
+        self.assertIn("userinfo", result.message)
+
     def test_empty_fails(self) -> None:
         self.assertEqual(classify_base_url("").status, "fail")
 
@@ -149,6 +165,24 @@ class TestRunChecks(unittest.TestCase):
         self.assertEqual(worst_status(results), "fail")
         names = {item.name: item for item in results}
         self.assertEqual(names["base_url"].status, "fail")
+
+    def test_userinfo_and_decimal_ip_fail_run_checks(self) -> None:
+        for url in ("http://127.0.0.1@evil.com", "http://2130706433:11434"):
+            with self.subTest(url=url):
+                results = run_checks(
+                    environ={
+                        "OLLAMA_BASE_URL": url,
+                        "OLLAMA_FAST_MODEL": "qwen3.5:9b",
+                        "OLLAMA_STRONG_MODEL": "devstral-small-2",
+                    },
+                    skip_listen=True,
+                    tracked=[],
+                    env_ignored=True,
+                    env_example_text="OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
+                )
+                self.assertEqual(worst_status(results), "fail")
+                names = {item.name: item for item in results}
+                self.assertEqual(names["base_url"].status, "fail")
 
     def test_check_result_ok(self) -> None:
         self.assertTrue(CheckResult("n", "warn", "m").ok)
