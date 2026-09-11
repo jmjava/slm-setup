@@ -86,7 +86,8 @@ connected through SSH local forwarding.
    ```
 
    GitHub Actions (`.github/workflows/tests.yml`) runs the same no-GPU path
-   on push and pull request.
+   on push and pull request, including
+   `python scripts/check_deployment_safety.py --skip-listen`.
 
 6. Deployment safety checks (no GPU required; inspects this host only):
 
