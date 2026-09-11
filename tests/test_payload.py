@@ -91,6 +91,10 @@ class InspectPayloadTests(unittest.TestCase):
     def test_max_tokens(self) -> None:
         self.assertEqual(inspect_payload([], max_tokens=9000), "max_tokens_too_large")
 
+    def test_max_tokens_8192_is_too_large(self) -> None:
+        self.assertEqual(inspect_payload([], max_tokens=8192), "max_tokens_too_large")
+        self.assertIsNone(inspect_payload([], max_tokens=4096))
+
     def test_route_uses_payload_guard(self) -> None:
         decision = route(
             mechanical_signals(),

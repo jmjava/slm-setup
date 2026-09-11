@@ -171,7 +171,7 @@ candidate. Security-sensitive delegated jobs first call `local_review`
 and attach those notes to the premium packet; that still cannot approve.
 
 The MCP server also refuses secret filenames, private-key / token
-blobs, oversized file sets, and `max_tokens` above 8192 **before**
+blobs, oversized file sets, and `max_tokens` above 4096 **before**
 calling Ollama. That is defense in depth if a client skips the eval
 router. A function that only mentions `password` is not treated as a
 secret blob.

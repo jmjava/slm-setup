@@ -13,7 +13,9 @@ from collections.abc import Sequence
 
 MAX_FILES = 12
 MAX_BYTES = 120_000
-MAX_TOKENS = 8192
+# Must match ollama_client.MAX_TOKENS_CAP. 8192 used to pass this gate
+# and then be silently clamped in chat(); refuse above the real cap.
+MAX_TOKENS = 4096
 
 _PRIVATE_KEY_MARKERS = (
     "-----BEGIN OPENSSH PRIVATE KEY-----",
