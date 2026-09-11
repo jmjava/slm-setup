@@ -588,7 +588,8 @@ The checker looks at *this* host only: `OLLAMA_BASE_URL`, model tags, whether
 `.env` is ignored, placeholder IPs in git, and whether port 11434 is listening
 on a wildcard. It does **not** scan other machines and it cannot prove weights
 are clean. The stdio MCP server also calls `classify_base_url` at start and
-exits if that check fails. Hostnames fail. Private LAN URLs still only warn.
+exits if that check fails. Hostnames fail. Userinfo (`user@host`) and
+decimal or integer-form IPs fail. Private LAN URLs still only warn.
 
 ### 12.2 Open-weight models
 

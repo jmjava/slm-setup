@@ -15,7 +15,7 @@ import subprocess
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 STARTER_FAST_MODEL = "qwen3.5:9b"
 STARTER_STRONG_MODEL = "devstral-small-2"
@@ -59,6 +59,8 @@ PLACEHOLDER_IPV4 = frozenset(
 
 IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 UNSAFE_MODEL_RE = re.compile(r"://|[\\/]|\.\.|@", re.IGNORECASE)
+# Decimal 2130706433 or 0x7f000001 disguise a dotted IPv4.
+_INTEGER_FORM_IP_RE = re.compile(r"^(?:\d+|0x[0-9a-f]+)$", re.IGNORECASE)
 
 # /proc/net/tcp state 0A = LISTEN
 _LISTEN_STATE = "0A"
@@ -75,8 +77,16 @@ class CheckResult:
         return self.status != "fail"
 
 
+def _has_userinfo(parsed: ParseResult) -> bool:
+    return parsed.username is not None or "@" in (parsed.netloc or "")
+
+
+def _is_integer_form_ip(host: str) -> bool:
+    return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
+
+
 def classify_base_url(url: str) -> CheckResult:
-    """Prefer loopback. Fail wildcards, tunnels, hostnames, and non-http(s)."""
+    """Prefer loopback. Fail wildcards, tunnels, hostnames, userinfo, and non-http(s)."""
     raw = (url or "").strip()
     if not raw:
         return CheckResult("base_url", "fail", "OLLAMA_BASE_URL is empty")
@@ -87,9 +97,21 @@ def classify_base_url(url: str) -> CheckResult:
             "fail",
             f"OLLAMA_BASE_URL must be http(s), got scheme={parsed.scheme!r}",
         )
+    if _has_userinfo(parsed):
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL must not include userinfo; @-form hosts are rejected",
+        )
     host = (parsed.hostname or "").lower()
     if not host:
         return CheckResult("base_url", "fail", "OLLAMA_BASE_URL has no host")
+    if _is_integer_form_ip(host):
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL must not use a decimal or integer-form IP",
+        )
     if host in {"0.0.0.0", "::", "[::]"}:
         return CheckResult(
             "base_url",

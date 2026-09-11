@@ -76,6 +76,20 @@ class ServerRuntimeSafetyTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 1)
         run.assert_not_called()
 
+    def test_server_start_userinfo_and_decimal_ip_fail(self) -> None:
+        # Leftover #12: userinfo / decimal-IP tricks fail; leftover #10 still refuse.
+        for url in ("http://127.0.0.1@evil.com", "http://2130706433:11434"):
+            with self.subTest(url=url):
+                self.assertEqual(classify_base_url(url).status, "fail")
+                with (
+                    patch("local_coding_slm.server.mcp.run") as run,
+                    patch.dict(os.environ, {"OLLAMA_BASE_URL": url}, clear=False),
+                ):
+                    with self.assertRaises(SystemExit) as raised:
+                        main()
+                self.assertEqual(raised.exception.code, 1)
+                run.assert_not_called()
+
     def test_server_imports_classify_base_url(self) -> None:
         text = SERVER.read_text(encoding="utf-8")
         self.assertIn("from local_coding_slm.safety import classify_base_url", text)
