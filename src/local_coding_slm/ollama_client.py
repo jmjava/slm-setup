@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
-from local_coding_slm.safety import OFFICIAL_LIBRARY_TAGS
+from local_coding_slm.safety import is_official_library_tag
 
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_FAST_MODEL = "qwen3.5:9b"
@@ -56,7 +56,7 @@ class OllamaSettings:
             tag = self.fast_model
         else:
             raise OllamaError(f"model must be 'fast' or 'strong', got {model!r}")
-        if not self.allow_unofficial and tag.strip() not in OFFICIAL_LIBRARY_TAGS:
+        if not self.allow_unofficial and not is_official_library_tag(tag):
             raise OllamaError(
                 f"unofficial_model_tag: {tag!r} is not in OFFICIAL_LIBRARY_TAGS; "
                 f"set {ALLOW_UNOFFICIAL_TAGS_ENV}=1 to override"

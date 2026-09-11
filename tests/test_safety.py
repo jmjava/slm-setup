@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from local_coding_slm.safety import (
     CheckResult,
+    OFFICIAL_LIBRARY_TAGS,
     classify_base_url,
     classify_env_example,
     classify_env_ignored,
@@ -70,8 +72,26 @@ class TestClassifyModelTag(unittest.TestCase):
         self.assertEqual(classify_model_tag("fast", "/tmp/mystery.gguf").status, "fail")
         self.assertEqual(classify_model_tag("fast", "user/trojan-finetune").status, "fail")
 
-    def test_unknown_library_name_warns(self) -> None:
-        self.assertEqual(classify_model_tag("fast", "some-random-coder:7b").status, "warn")
+    def test_unknown_library_name_fails(self) -> None:
+        result = classify_model_tag("fast", "some-random-coder:7b")
+        self.assertEqual(result.status, "fail")
+        self.assertIn("OFFICIAL_LIBRARY_TAGS", result.message)
+
+    def test_official_family_unlisted_variant_fails(self) -> None:
+        result = classify_model_tag("fast", "qwen2.5-coder:32b")
+        self.assertEqual(result.status, "fail")
+        self.assertNotEqual(classify_model_tag("fast", "qwen2.5-coder:7b").status, "fail")
+
+    def test_allowlist_length_changes_classify_accept_reject(self) -> None:
+        extra = "brand-new-coder:7b"
+        self.assertEqual(classify_model_tag("fast", extra).status, "fail")
+        lengthened = OFFICIAL_LIBRARY_TAGS | {extra}
+        with patch("local_coding_slm.safety.OFFICIAL_LIBRARY_TAGS", lengthened):
+            self.assertEqual(classify_model_tag("fast", extra).status, "pass")
+        shortened = OFFICIAL_LIBRARY_TAGS - {"qwen3.5:9b"}
+        with patch("local_coding_slm.safety.OFFICIAL_LIBRARY_TAGS", shortened):
+            self.assertEqual(classify_model_tag("fast", "qwen3.5:9b").status, "fail")
+        self.assertEqual(classify_model_tag("fast", "qwen3.5:9b").status, "pass")
 
     def test_empty_fails(self) -> None:
         self.assertEqual(classify_model_tag("fast", "  ").status, "fail")
@@ -133,6 +153,22 @@ class TestRunChecks(unittest.TestCase):
             env_example_text="OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
         )
         self.assertEqual(worst_status(results), "pass")
+
+    def test_unofficial_library_tag_fails_run_checks(self) -> None:
+        results = run_checks(
+            environ={
+                "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
+                "OLLAMA_FAST_MODEL": "some-random-coder:7b",
+                "OLLAMA_STRONG_MODEL": "devstral-small-2",
+            },
+            skip_listen=True,
+            tracked=[],
+            env_ignored=True,
+            env_example_text="OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
+        )
+        self.assertEqual(worst_status(results), "fail")
+        names = {item.name: item for item in results}
+        self.assertEqual(names["OLLAMA_FAST_MODEL"].status, "fail")
 
     def test_trojan_shaped_tag_fails(self) -> None:
         results = run_checks(

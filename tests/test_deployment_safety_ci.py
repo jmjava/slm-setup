@@ -93,6 +93,16 @@ class DeploymentSafetyCiTests(unittest.TestCase):
         self.assertIn("FAIL deployment safety", stdout)
         self.assertNotIn("PASS deployment safety (warnings)", stdout)
 
+    def test_unofficial_library_tag_fails_deployment_safety(self) -> None:
+        module = _load_script()
+        with patch.dict(os.environ, {"OLLAMA_FAST_MODEL": "some-random-coder:7b"}):
+            code, stdout, stderr = _run_main(
+                module, [str(SCRIPT), "--skip-listen"]
+            )
+        self.assertEqual(code, 1, stderr)
+        self.assertIn("FAIL deployment safety", stdout)
+        self.assertNotIn("PASS deployment safety (warnings)", stdout)
+
     def test_userinfo_and_decimal_ip_fail_deployment_safety(self) -> None:
         module = _load_script()
         for url in ("http://127.0.0.1@evil.com", "http://2130706433:11434"):

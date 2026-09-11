@@ -14,6 +14,7 @@ from local_coding_slm.ollama_client import (
     list_model_names,
     status_report,
 )
+from local_coding_slm.safety import OFFICIAL_LIBRARY_TAGS
 
 
 class _FakeResp:
@@ -91,6 +92,33 @@ class SettingsTests(unittest.TestCase):
         with self.assertRaises(OllamaError) as raised:
             settings.resolve_model("fast")
         self.assertIn("unofficial_model_tag", str(raised.exception))
+
+    def test_allowlist_length_changes_resolve_model_accept_reject(self) -> None:
+        extra = "brand-new-coder:7b"
+        extra_settings = OllamaSettings(
+            base_url="http://127.0.0.1:11434",
+            fast_model=extra,
+            strong_model="devstral-small-2",
+            num_ctx=16384,
+        )
+        with self.assertRaises(OllamaError) as raised:
+            extra_settings.resolve_model("fast")
+        self.assertIn("unofficial_model_tag", str(raised.exception))
+        lengthened = OFFICIAL_LIBRARY_TAGS | {extra}
+        with patch("local_coding_slm.safety.OFFICIAL_LIBRARY_TAGS", lengthened):
+            self.assertEqual(extra_settings.resolve_model("fast"), extra)
+        starter = OllamaSettings(
+            base_url="http://127.0.0.1:11434",
+            fast_model="qwen3.5:9b",
+            strong_model="devstral-small-2",
+            num_ctx=16384,
+        )
+        shortened = OFFICIAL_LIBRARY_TAGS - {"qwen3.5:9b"}
+        with patch("local_coding_slm.safety.OFFICIAL_LIBRARY_TAGS", shortened):
+            with self.assertRaises(OllamaError) as shortened_raised:
+                starter.resolve_model("fast")
+            self.assertIn("unofficial_model_tag", str(shortened_raised.exception))
+        self.assertEqual(starter.resolve_model("fast"), "qwen3.5:9b")
 
     def test_host_label_is_hostname_only(self) -> None:
         settings = OllamaSettings(

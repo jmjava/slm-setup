@@ -607,9 +607,11 @@ an alignment or integrity win.
   weight files can look helpful and still plant backdoors in generated code.
   This repo will not document how to do that. Pull from the official library,
   pin the tags in `.env`, and review every patch.
-- The checker can reject path/URL-shaped tags and public binds. Unofficial
-  library names still warn there. Runtime `resolve_model` refuses them
-  unless `OLLAMA_ALLOW_UNOFFICIAL_TAGS=1`. The checker **cannot**
+- The checker rejects path/URL-shaped tags, public binds, and any tag
+  outside `OFFICIAL_LIBRARY_TAGS` (exact match; a listed family is not
+  enough). Runtime `resolve_model` refuses the same off-list tags
+  unless `OLLAMA_ALLOW_UNOFFICIAL_TAGS=1`. Lengthening or shortening
+  that set changes accept/reject. The checker **cannot**
   detect a backdoor inside an otherwise normal-looking official tag. Review
   remains mandatory.
 - Do not give the SLM shell, credentials, or unattended merge rights.
