@@ -13,7 +13,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install package
-        run: python -m pip install --upgrade pip && python -m pip install -e .
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[dev]'
+      - name: Ruff unused imports
+        run: python -m ruff check --select F401,F811 src scripts tests
+      - name: Complexity proving test
+        run: bash scripts/test-check-complexity.sh
       - name: Unit tests
         run: python -m unittest discover -s tests -v
         env:
