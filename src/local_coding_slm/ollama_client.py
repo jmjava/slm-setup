@@ -153,7 +153,10 @@ def chat(
     timeout_s = settings.timeout_s(model)
     num_predict = MAX_TOKENS_CAP
     if max_tokens is not None:
-        num_predict = max(1, min(int(max_tokens), MAX_TOKENS_CAP))
+        requested = int(max_tokens)
+        if requested > MAX_TOKENS_CAP:
+            raise OllamaError("max_tokens_too_large")
+        num_predict = max(1, requested)
     payload = {
         "model": tag,
         "messages": [

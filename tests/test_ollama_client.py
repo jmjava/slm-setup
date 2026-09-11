@@ -99,6 +99,38 @@ class ClientTests(unittest.TestCase):
         self.assertFalse(body["stream"])
         self.assertEqual(body["model"], "qwen3.5:9b")
 
+    def test_chat_num_predict_equals_requested(self) -> None:
+        payload = {"message": {"content": "ok"}}
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            return_value=_FakeResp(payload),
+        ) as mocked:
+            chat(
+                "sys",
+                "write ping",
+                model="fast",
+                max_tokens=2048,
+                settings=self.settings,
+            )
+        req = mocked.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body["options"]["num_predict"], 2048)
+
+    def test_chat_max_tokens_above_cap_raises_without_post(self) -> None:
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+        ) as mocked:
+            with self.assertRaises(OllamaError) as raised:
+                chat(
+                    "sys",
+                    "write ping",
+                    model="fast",
+                    max_tokens=8192,
+                    settings=self.settings,
+                )
+        self.assertIn("max_tokens_too_large", str(raised.exception))
+        mocked.assert_not_called()
+
     def test_unreachable_becomes_ollama_error(self) -> None:
         with patch(
             "local_coding_slm.ollama_client.urllib.request.urlopen",
