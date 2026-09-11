@@ -42,7 +42,10 @@ def main() -> None:
     if status == "fail":
         print("FAIL deployment safety")
         raise SystemExit(1)
-    print("PASS deployment safety" if status == "pass" else "PASS deployment safety (warnings)")
+    if status == "warn":
+        print("WARN deployment safety")
+        raise SystemExit(0)
+    print("PASS deployment safety")
     raise SystemExit(0)
 
 

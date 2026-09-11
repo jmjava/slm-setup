@@ -93,7 +93,8 @@ connected through SSH local forwarding.
 
    The MCP server also calls `classify_base_url` on start and refuses a
    fail-status `OLLAMA_BASE_URL` (wildcard, tunnel, public IP, hostname,
-   userinfo, or decimal/integer-form IP). Private LAN URLs still only warn.
+   userinfo, or decimal/integer-form IP). Private LAN URLs still only warn;
+   the checker then prints `WARN deployment safety`, not PASS.
 
 6. Deployment safety checks (no GPU required; inspects this host only):
 

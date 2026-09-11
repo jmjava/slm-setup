@@ -82,6 +82,18 @@ class DeploymentSafetyCiTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("deployment safety", proc.stdout)
+        self.assertNotIn("PASS deployment safety", proc.stdout)
+
+    def test_warnings_only_does_not_print_pass(self) -> None:
+        """Hostile/warnings-only config must not print PASS as success."""
+        module = _load_script()
+        with patch.dict(os.environ, {"OLLAMA_BASE_URL": "http://192.168.1.10:11434"}):
+            code, stdout, stderr = _run_main(
+                module, [str(SCRIPT), "--skip-listen"]
+            )
+        self.assertEqual(code, 0, stderr)
+        self.assertNotIn("PASS deployment safety", stdout)
+        self.assertIn("WARN deployment safety", stdout)
 
     def test_hostname_url_fails_deployment_safety(self) -> None:
         module = _load_script()
