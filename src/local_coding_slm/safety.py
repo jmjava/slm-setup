@@ -21,7 +21,7 @@ STARTER_FAST_MODEL = "qwen3.5:9b"
 STARTER_STRONG_MODEL = "devstral-small-2"
 
 # Official Ollama library coding tags this repo is willing to name.
-# Unknown tags warn; URL/path-shaped names fail.
+# Exact members pass; anything else fails. URL/path-shaped names also fail.
 OFFICIAL_LIBRARY_TAGS = frozenset(
     {
         STARTER_FAST_MODEL,
@@ -159,11 +159,17 @@ def classify_base_url(url: str) -> CheckResult:
     )
 
 
+def is_official_library_tag(tag: str) -> bool:
+    """True when tag is exactly in OFFICIAL_LIBRARY_TAGS (live lookup)."""
+    return (tag or "").strip() in OFFICIAL_LIBRARY_TAGS
+
+
 def classify_model_tag(name: str, tag: str) -> CheckResult:
-    """Reject path/URL-shaped tags. Official pins pass; other library names warn.
+    """Reject path/URL-shaped tags and tags outside OFFICIAL_LIBRARY_TAGS.
 
     A clean tag is not proof the weights are clean. Unofficial GGUFs and
     one-off fine-tunes are the usual supply-chain hole for a trojaned SLM.
+    Lengthening or shortening OFFICIAL_LIBRARY_TAGS changes accept/reject.
     """
     value = (tag or "").strip()
     if not value:
@@ -180,24 +186,16 @@ def classify_model_tag(name: str, tag: str) -> CheckResult:
             "fail",
             f"{name}={value!r} is not a library tag",
         )
-    official_families = {t.split(":")[0] for t in OFFICIAL_LIBRARY_TAGS}
-    family = value.split(":")[0]
-    if value in OFFICIAL_LIBRARY_TAGS:
+    if is_official_library_tag(value):
         return CheckResult(
             name,
             "pass",
             f"{name}={value} is an official library tag this repo documents",
         )
-    if family in official_families:
-        return CheckResult(
-            name,
-            "warn",
-            f"{name}={value} is an official family but not a starter pin; confirm it on ollama.com/library",
-        )
     return CheckResult(
         name,
-        "warn",
-        f"{name}={value} is not in the starter allowlist; pull only from ollama.com/library",
+        "fail",
+        f"{name}={value} is not in OFFICIAL_LIBRARY_TAGS; pull only from ollama.com/library",
     )
 
 
