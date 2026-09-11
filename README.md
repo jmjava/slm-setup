@@ -161,7 +161,9 @@ stores.
 Open-weight models are a privacy win, not an integrity guarantee. **Qwen** is a
 model family (some tags are large LLMs). `qwen3.5:9b` is the starter SLM here.
 Pull only official Ollama library tags. Unofficial GGUFs and one-off fine-tunes
-are the usual way a trojaned SLM shows up. Treat every `local_*` result as
-untrusted and review it before applying. The checker cannot see inside weights.
+are the usual way a trojaned SLM shows up. `resolve_model` refuses a tag
+outside `OFFICIAL_LIBRARY_TAGS` unless `OLLAMA_ALLOW_UNOFFICIAL_TAGS=1`.
+Treat every `local_*` result as untrusted and review it before applying.
+The checker cannot see inside weights.
 
 Details: [spec.md §12](spec.md#12-security).

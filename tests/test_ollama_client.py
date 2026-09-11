@@ -1,9 +1,11 @@
 import json
+import os
 import unittest
 from unittest.mock import patch
 from urllib.error import URLError
 
 from local_coding_slm.ollama_client import (
+    ALLOW_UNOFFICIAL_TAGS_ENV,
     OllamaError,
     OllamaSettings,
     chat,
@@ -41,6 +43,54 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.resolve_model(None), "qwen3.5:9b")
         with self.assertRaises(OllamaError):
             settings.resolve_model("medium")
+
+    def test_resolve_model_rejects_off_allowlist(self) -> None:
+        """Leftover #13: unofficial tags must not reach Ollama without a hatch."""
+        settings = OllamaSettings(
+            base_url="http://127.0.0.1:11434",
+            fast_model="sketchy-backdoor-gguf:q4",
+            strong_model="devstral-small-2",
+            num_ctx=16384,
+        )
+        with self.assertRaises(OllamaError) as raised:
+            settings.resolve_model("fast")
+        self.assertIn("unofficial_model_tag", str(raised.exception))
+        self.assertIn("sketchy-backdoor-gguf:q4", str(raised.exception))
+
+    def test_resolve_model_allows_off_allowlist_with_escape_hatch(self) -> None:
+        """Leftover #13: only an explicit hatch may resolve an unofficial tag."""
+        settings = OllamaSettings(
+            base_url="http://127.0.0.1:11434",
+            fast_model="sketchy-backdoor-gguf:q4",
+            strong_model="devstral-small-2",
+            num_ctx=16384,
+            allow_unofficial=True,
+        )
+        self.assertEqual(settings.resolve_model("fast"), "sketchy-backdoor-gguf:q4")
+
+    def test_resolve_model_from_env_escape_hatch(self) -> None:
+        env = {
+            "OLLAMA_FAST_MODEL": "sketchy-backdoor-gguf:q4",
+            "OLLAMA_STRONG_MODEL": "devstral-small-2",
+            ALLOW_UNOFFICIAL_TAGS_ENV: "1",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            settings = OllamaSettings.from_env()
+        self.assertTrue(settings.allow_unofficial)
+        self.assertEqual(settings.resolve_model("fast"), "sketchy-backdoor-gguf:q4")
+
+    def test_resolve_model_from_env_rejects_off_allowlist(self) -> None:
+        env = {
+            "OLLAMA_FAST_MODEL": "sketchy-backdoor-gguf:q4",
+            "OLLAMA_STRONG_MODEL": "devstral-small-2",
+            ALLOW_UNOFFICIAL_TAGS_ENV: "0",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            settings = OllamaSettings.from_env()
+        self.assertFalse(settings.allow_unofficial)
+        with self.assertRaises(OllamaError) as raised:
+            settings.resolve_model("fast")
+        self.assertIn("unofficial_model_tag", str(raised.exception))
 
     def test_host_label_is_hostname_only(self) -> None:
         settings = OllamaSettings(
@@ -129,6 +179,21 @@ class ClientTests(unittest.TestCase):
                     settings=self.settings,
                 )
         self.assertIn("max_tokens_too_large", str(raised.exception))
+        mocked.assert_not_called()
+
+    def test_chat_rejects_unofficial_tag_without_post(self) -> None:
+        settings = OllamaSettings(
+            base_url="http://127.0.0.1:11434",
+            fast_model="sketchy-backdoor-gguf:q4",
+            strong_model="devstral-small-2",
+            num_ctx=4096,
+        )
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+        ) as mocked:
+            with self.assertRaises(OllamaError) as raised:
+                chat("sys", "write ping", model="fast", settings=settings)
+        self.assertIn("unofficial_model_tag", str(raised.exception))
         mocked.assert_not_called()
 
     def test_chat_omitted_max_tokens_posts_cap_in_body(self) -> None:
