@@ -38,6 +38,21 @@ class ServerPayloadTests(unittest.TestCase):
         self.assertIn("secret_content", text)
         chat.assert_not_called()  # type: ignore[attr-defined]
 
+    @patch("local_coding_slm.server.chat")
+    def test_private_key_in_task_never_calls_ollama(self, chat: object) -> None:
+        text = _run_tool(
+            "local_code",
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nNOT-A-REAL-KEY\n",
+            [{"path": "app.py", "content": "def add(a, b): return a + b\n"}],
+            None,
+            None,
+            "fast",
+            None,
+        )
+        self.assertTrue(text.startswith("ERROR:"))
+        self.assertIn("secret_content", text)
+        chat.assert_not_called()  # type: ignore[attr-defined]
+
     @patch("local_coding_slm.server.chat", return_value="ok")
     def test_clean_payload_reaches_chat(self, chat: object) -> None:
         text = _run_tool(

@@ -38,6 +38,15 @@ class InspectPayloadTests(unittest.TestCase):
             "secret_content",
         )
 
+    def test_private_key_in_task(self) -> None:
+        self.assertEqual(
+            inspect_payload(
+                [{"path": "app.py", "content": "def add(a, b): return a + b\n"}],
+                task="-----BEGIN OPENSSH PRIVATE KEY-----\nNOT-A-REAL-KEY\n",
+            ),
+            "secret_content",
+        )
+
     def test_password_in_code_is_not_a_secret_blob(self) -> None:
         self.assertIsNone(
             inspect_payload(
