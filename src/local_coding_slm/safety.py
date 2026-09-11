@@ -76,7 +76,7 @@ class CheckResult:
 
 
 def classify_base_url(url: str) -> CheckResult:
-    """Prefer loopback. Fail wildcards, tunnels, and non-http(s)."""
+    """Prefer loopback. Fail wildcards, tunnels, hostnames, and non-http(s)."""
     raw = (url or "").strip()
     if not raw:
         return CheckResult("base_url", "fail", "OLLAMA_BASE_URL is empty")
@@ -113,8 +113,8 @@ def classify_base_url(url: str) -> CheckResult:
     except ValueError:
         return CheckResult(
             "base_url",
-            "warn",
-            "OLLAMA_BASE_URL is a hostname; prefer 127.0.0.1 via SSH -L",
+            "fail",
+            "OLLAMA_BASE_URL is a hostname; use 127.0.0.1 via SSH -L",
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")

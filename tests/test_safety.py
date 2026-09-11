@@ -35,6 +35,11 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_private_lan_warns(self) -> None:
         self.assertEqual(classify_base_url("http://192.168.1.10:11434").status, "warn")
 
+    def test_hostname_non_loopback_non_private_fails(self) -> None:
+        result = classify_base_url("https://my-ollama.evil.com")
+        self.assertEqual(result.status, "fail")
+        self.assertIn("hostname", result.message)
+
     def test_empty_fails(self) -> None:
         self.assertEqual(classify_base_url("").status, "fail")
 
@@ -128,6 +133,22 @@ class TestRunChecks(unittest.TestCase):
         self.assertEqual(worst_status(results), "fail")
         names = {item.name: item for item in results}
         self.assertEqual(names["OLLAMA_FAST_MODEL"].status, "fail")
+
+    def test_hostname_url_fails_run_checks(self) -> None:
+        results = run_checks(
+            environ={
+                "OLLAMA_BASE_URL": "https://my-ollama.evil.com",
+                "OLLAMA_FAST_MODEL": "qwen3.5:9b",
+                "OLLAMA_STRONG_MODEL": "devstral-small-2",
+            },
+            skip_listen=True,
+            tracked=[],
+            env_ignored=True,
+            env_example_text="OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
+        )
+        self.assertEqual(worst_status(results), "fail")
+        names = {item.name: item for item in results}
+        self.assertEqual(names["base_url"].status, "fail")
 
     def test_check_result_ok(self) -> None:
         self.assertTrue(CheckResult("n", "warn", "m").ok)

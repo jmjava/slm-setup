@@ -83,6 +83,16 @@ class DeploymentSafetyCiTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("deployment safety", proc.stdout)
 
+    def test_hostname_url_fails_deployment_safety(self) -> None:
+        module = _load_script()
+        with patch.dict(os.environ, {"OLLAMA_BASE_URL": "https://my-ollama.evil.com"}):
+            code, stdout, stderr = _run_main(
+                module, [str(SCRIPT), "--skip-listen"]
+            )
+        self.assertEqual(code, 1, stderr)
+        self.assertIn("FAIL deployment safety", stdout)
+        self.assertNotIn("PASS deployment safety (warnings)", stdout)
+
     def test_skip_listen_exits_1_when_checks_fail(self) -> None:
         module = _load_script()
         failed = [

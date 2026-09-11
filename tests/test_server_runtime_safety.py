@@ -63,16 +63,18 @@ class ServerRuntimeSafetyTests(unittest.TestCase):
             main()
         run.assert_called_once_with(transport="stdio")
 
-    def test_server_start_hostname_warn_still_starts(self) -> None:
-        # Leftover #11 stays warn; runtime start must not fail-close hostnames.
+    def test_server_start_hostname_fails(self) -> None:
+        # Leftover #11: hostname URLs fail; leftover #10 still refuse on fail.
         url = "https://my-ollama.evil.com"
-        self.assertEqual(classify_base_url(url).status, "warn")
+        self.assertEqual(classify_base_url(url).status, "fail")
         with (
             patch("local_coding_slm.server.mcp.run") as run,
             patch.dict(os.environ, {"OLLAMA_BASE_URL": url}, clear=False),
         ):
-            main()
-        run.assert_called_once_with(transport="stdio")
+            with self.assertRaises(SystemExit) as raised:
+                main()
+        self.assertEqual(raised.exception.code, 1)
+        run.assert_not_called()
 
     def test_server_imports_classify_base_url(self) -> None:
         text = SERVER.read_text(encoding="utf-8")
