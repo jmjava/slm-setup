@@ -131,6 +131,53 @@ class ClientTests(unittest.TestCase):
         self.assertIn("max_tokens_too_large", str(raised.exception))
         mocked.assert_not_called()
 
+    def test_chat_omitted_max_tokens_posts_cap_in_body(self) -> None:
+        """Leftover #8: default clamp is options.num_predict, not payload.MAX_TOKENS."""
+        payload = {"message": {"content": "ok"}}
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            return_value=_FakeResp(payload),
+        ) as mocked:
+            chat("sys", "write ping", model="fast", settings=self.settings)
+        req = mocked.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body["options"]["num_predict"], 4096)
+
+    def test_chat_max_tokens_zero_posts_floor_clamp_in_body(self) -> None:
+        """Leftover #8: max(1, requested) must show up in the POST body."""
+        payload = {"message": {"content": "ok"}}
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            return_value=_FakeResp(payload),
+        ) as mocked:
+            chat(
+                "sys",
+                "write ping",
+                model="fast",
+                max_tokens=0,
+                settings=self.settings,
+            )
+        req = mocked.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        self.assertEqual(body["options"]["num_predict"], 1)
+        self.assertNotEqual(body["options"]["num_predict"], 0)
+
+    def test_chat_max_tokens_9000_does_not_post_clamped_body(self) -> None:
+        """Leftover #8: inspect_payload(9000) is not enough; client must not POST 4096."""
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+        ) as mocked:
+            with self.assertRaises(OllamaError) as raised:
+                chat(
+                    "sys",
+                    "write ping",
+                    model="fast",
+                    max_tokens=9000,
+                    settings=self.settings,
+                )
+        self.assertIn("max_tokens_too_large", str(raised.exception))
+        mocked.assert_not_called()
+
     def test_unreachable_becomes_ollama_error(self) -> None:
         with patch(
             "local_coding_slm.ollama_client.urllib.request.urlopen",
