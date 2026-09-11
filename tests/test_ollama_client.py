@@ -1,6 +1,5 @@
 import json
 import unittest
-from io import BytesIO
 from unittest.mock import patch
 from urllib.error import URLError
 
