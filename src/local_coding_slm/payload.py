@@ -8,6 +8,7 @@ allowed.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 MAX_FILES = 12
@@ -20,7 +21,20 @@ _PRIVATE_KEY_MARKERS = (
     "-----BEGIN EC PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----",
 )
-_TOKEN_PREFIXES = ("ghp_", "github_pat_", "sk-proj-", "sk-ant-")
+_SECRET_BASENAMES = frozenset(
+    {
+        "credentials.json",
+        "id_rsa",
+        "id_rsa.pub",
+        "id_ed25519",
+        "id_ed25519.pub",
+        "kubeconfig",
+    }
+)
+_TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_])(?:ghp_|github_pat_|sk-)")
+_AWS_SECRET_ASSIGN_RE = re.compile(r"aws_secret_access_key\s*=")
+_AWS_ACCESS_KEY_ID_RE = re.compile(r"\bAKIA[0-9A-Z]*")
+_JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*")
 
 
 def inspect_payload(
@@ -60,12 +74,15 @@ def refusal_message(reason: str) -> str:
 
 
 def _secret_path(path: str) -> str | None:
-    name = path.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    normalized = path.replace("\\", "/").lower()
+    name = normalized.rsplit("/", 1)[-1]
     if name == ".env.example":
         return None
     if name == ".env" or name.startswith(".env."):
         return "secrets_file"
-    if name in {"credentials.json", "id_rsa", "id_rsa.pub"}:
+    if name in _SECRET_BASENAMES:
+        return "secrets_file"
+    if normalized == ".aws/credentials" or normalized.endswith("/.aws/credentials"):
         return "secrets_file"
     return None
 
@@ -73,10 +90,12 @@ def _secret_path(path: str) -> str | None:
 def _secret_content(content: str) -> str | None:
     if any(marker in content for marker in _PRIVATE_KEY_MARKERS):
         return "secret_content"
-    lowered = content.lower()
-    if "aws_secret_access_key=" in lowered:
+    if _AWS_SECRET_ASSIGN_RE.search(content.lower()):
         return "secret_content"
-    for prefix in _TOKEN_PREFIXES:
-        if prefix in content:
-            return "secret_content"
+    if _TOKEN_RE.search(content):
+        return "secret_content"
+    if _AWS_ACCESS_KEY_ID_RE.search(content):
+        return "secret_content"
+    if _JWT_RE.search(content):
+        return "secret_content"
     return None

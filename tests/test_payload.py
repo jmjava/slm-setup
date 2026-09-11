@@ -8,7 +8,37 @@ from local_coding_slm.eval.routing import mechanical_signals, route
 from local_coding_slm.payload import MAX_FILES, inspect_payload, refusal_message
 
 
+# Leftover #6 shapes that origin/main allowed through. Fixtures only.
+_THIN_SECRET_CASES: tuple[tuple[str, list[dict[str, str]]], ...] = (
+    ("id_ed25519", [{"path": "id_ed25519", "content": "not-a-real-key"}]),
+    (".aws/credentials", [{"path": ".aws/credentials", "content": "[default]\n"}]),
+    ("kubeconfig", [{"path": "kubeconfig", "content": "apiVersion: v1\n"}]),
+    ("plain sk-", [{"path": "notes.py", "content": "sk-"}]),
+    ("AKIA", [{"path": "notes.py", "content": "AKIA"}]),
+    (
+        "JWT",
+        [
+            {
+                "path": "notes.py",
+                "content": "eyJhbGciOiJub25lIn0.eyJzdWIiOiJmaXh0dXJlIn0.e30",
+            }
+        ],
+    ),
+    (
+        "spaced aws_secret_access_key =",
+        [{"path": "notes.py", "content": "aws_secret_access_key ="}],
+    ),
+)
+
+
 class InspectPayloadTests(unittest.TestCase):
+    def test_inspect_payload_refuses_thin_secret_shapes(self) -> None:
+        for label, files in _THIN_SECRET_CASES:
+            with self.subTest(label=label):
+                reason = inspect_payload(files)
+                self.assertIsNotNone(reason, msg=label)
+                self.assertTrue(reason)
+
     def test_clean_snippet_ok(self) -> None:
         self.assertIsNone(
             inspect_payload([{"path": "add.py", "content": "def add(a, b): return a + b\n"}])
