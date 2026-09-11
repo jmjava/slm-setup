@@ -681,7 +681,7 @@ OLLAMA_BASE_URL
 │   ├── run_mcp.sh                   ← project MCP entry (loads .env)
 │   ├── prove_acceptance.py
 │   ├── prove_refactor_acceptance.py
-│   ├── prove_multifile_refactor.py  ← harder multi-file suite; --live skips if down
+│   ├── prove_multifile_refactor.py  ← harder multi-file suite; --live skip-0, --require-live skip-2
 │   ├── run_eval.py                  ← fixture corpus; --live on the workstation
 │   ├── run_harness.py               ← timed MCP campaign (stub or live)
 │   └── check_deployment_safety.py   ← defensive bind / tag / git checks

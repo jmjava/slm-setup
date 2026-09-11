@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -94,6 +95,31 @@ class HarderMultifileCorpusTests(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("SKIP live", proc.stdout)
+
+    def test_require_live_exits_2_when_ollama_is_down(self) -> None:
+        env = os.environ.copy()
+        env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
+        env["OLLAMA_BASE_URL"] = "http://127.0.0.1:1"
+        status_path = ROOT / "eval-runs" / "live-status.json"
+        if status_path.exists():
+            status_path.unlink()
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "prove_multifile_refactor.py"),
+                "--live",
+                "--require-live",
+            ],
+            cwd=str(ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertIn("SKIP live", proc.stdout)
+        payload = json.loads(status_path.read_text(encoding="utf-8"))
+        self.assertEqual(payload, {"skipped": True})
 
     def test_partial_files_are_format(self) -> None:
         for name in (

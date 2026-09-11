@@ -198,12 +198,15 @@ PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
 GitHub Actions (`.github/workflows/tests.yml`) runs the same no-GPU path on every push.
 
 Live protocol (workstation with Ollama). If the server is down, `--live`
-prints `SKIP live` and exits 0. That skip is not a model-quality pass:
+prints `SKIP live` and exits 0. `--require-live` writes
+`eval-runs/live-status.json` `{"skipped": true}` and exits 2. That skip
+is not a model-quality pass:
 
 ```bash
 .venv/bin/python scripts/run_eval.py --live --model fast
 .venv/bin/python scripts/run_eval.py --live --suite harder --model fast
 .venv/bin/python scripts/prove_multifile_refactor.py --live --model fast
+.venv/bin/python scripts/prove_multifile_refactor.py --live --require-live --model fast
 .venv/bin/python scripts/run_eval.py --live --model strong
 ```
 

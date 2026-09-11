@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
+LIVE_STATUS_PATH = ROOT / "eval-runs" / "live-status.json"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
@@ -40,6 +42,14 @@ def _print_result(label: str, result: object) -> None:
     print(f"{mark} {label}{extra}")
     for layer in getattr(result, "layers"):
         print(f"  {layer.status:4} {layer.name}: {layer.message}")
+
+
+def _write_live_status(*, skipped: bool) -> None:
+    LIVE_STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    LIVE_STATUS_PATH.write_text(
+        json.dumps({"skipped": skipped}) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _wanted(case_id: str, suite: str, only: str | None) -> bool:
@@ -81,18 +91,22 @@ def _run_fixtures(case_id: str | None, suite: str) -> int:
     return failed
 
 
-async def _run_live(case_id: str | None, model: str, suite: str) -> int:
+async def _run_live(
+    case_id: str | None, model: str, suite: str, *, require_live: bool
+) -> int:
     from local_coding_slm.ollama_client import OllamaSettings, is_reachable
     from local_coding_slm.server import _load_dotenv
 
     _load_dotenv()
     settings = OllamaSettings.from_env()
     if not is_reachable(settings):
+        _write_live_status(skipped=True)
         print(
             f"SKIP live: Ollama unreachable at {settings.host_label()} "
             "(offline fixtures still pass; this is not a model-quality fail)"
         )
-        return 0
+        return 2 if require_live else 0
+    _write_live_status(skipped=False)
 
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
@@ -143,6 +157,11 @@ async def _run_live(case_id: str | None, model: str, suite: str) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true", help="Call real Ollama via stdio MCP")
+    parser.add_argument(
+        "--require-live",
+        action="store_true",
+        help="Same as --live, but exit 2 when Ollama is down instead of skip-0.",
+    )
     parser.add_argument("--model", choices=("fast", "strong"), default="fast")
     parser.add_argument("--case", dest="case_id", default=None)
     parser.add_argument(
@@ -152,8 +171,17 @@ def main() -> None:
         help="Fixture / live subset. harder = Phase 3 multi-file behavior cases.",
     )
     args = parser.parse_args()
-    if args.live:
-        raise SystemExit(asyncio.run(_run_live(args.case_id, args.model, args.suite)))
+    if args.live or args.require_live:
+        raise SystemExit(
+            asyncio.run(
+                _run_live(
+                    args.case_id,
+                    args.model,
+                    args.suite,
+                    require_live=args.require_live,
+                )
+            )
+        )
     failed = _run_fixtures(args.case_id, args.suite)
     raise SystemExit(1 if failed else 0)
 
