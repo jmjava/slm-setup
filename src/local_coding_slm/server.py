@@ -158,7 +158,7 @@ def local_review(
 def enforce_runtime_base_url(url: str | None = None) -> None:
     """Refuse to start when OLLAMA_BASE_URL fails classify_base_url.
 
-    Warn status still starts (hostname and private LAN URLs only warn).
+    Warn status still starts (private LAN URLs only warn).
     """
     raw = os.environ.get("OLLAMA_BASE_URL", DEFAULT_BASE_URL) if url is None else url
     result = classify_base_url(raw)
