@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import unittest
 
+from local_coding_slm.eval.cases_harder import HARDER_CASE_IDS
 from local_coding_slm.eval.harness import run_campaign, run_orchestrated_campaign
 from local_coding_slm.eval.jobs import MCP_JOBS
+from local_coding_slm.eval.orchestrate import run_job
 from local_coding_slm.eval.record import summarize
 
 
@@ -107,6 +109,29 @@ class McpOrchestratorTests(unittest.IsolatedAsyncioTestCase):
     def test_job_table_covers_keep_and_delegate(self) -> None:
         self.assertTrue(any(job.eval_case is None for job in MCP_JOBS))
         self.assertTrue(any(job.eval_case is not None for job in MCP_JOBS))
+
+    def test_mcp_jobs_intersect_harder_cases(self) -> None:
+        case_ids = {
+            job.eval_case.id for job in MCP_JOBS if job.eval_case is not None
+        }
+        overlap = case_ids & set(HARDER_CASE_IDS)
+        self.assertIn("rename_exception_across_files", overlap)
+        self.assertTrue(overlap)
+
+    def test_harder_rename_exception_job_blocks_accept_unproven_local(self) -> None:
+        job = next(
+            item
+            for item in MCP_JOBS
+            if item.eval_case is not None
+            and item.eval_case.id == "rename_exception_across_files"
+        )
+        result = run_job(job)
+        self.assertEqual(result.case_id, "rename_exception_across_files")
+        self.assertTrue(result.delegated)
+        self.assertFalse(result.local_passed)
+        self.assertFalse(result.applied)
+        self.assertEqual(result.outcome, "blocked")
+        self.assertEqual(result.blocked, "accept_unproven_local")
 
 
 if __name__ == "__main__":

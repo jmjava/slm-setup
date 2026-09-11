@@ -169,6 +169,9 @@ The same gate runs after **real stdio MCP** calls when you pass
 never call `local_*`. Accept / rewrite / reject then run on the scored
 candidate. Security-sensitive delegated jobs first call `local_review`
 and attach those notes to the premium packet; that still cannot approve.
+`MCP_JOBS` includes `rename_exception_across_files` so the apply gate
+sees a harder multi-file case; premium accept of an unproven local
+result is blocked (`accept_unproven_local`).
 
 The MCP server also refuses secret filenames, private-key / token
 blobs, oversized file sets, and `max_tokens` above 4096 **before**

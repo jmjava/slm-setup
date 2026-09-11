@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from local_coding_slm.eval.cases import CASES_BY_ID
+from local_coding_slm.eval.cases_harder import RENAME_EXCEPTION_PARTIAL
 from local_coding_slm.eval.orchestrate import OrchestrationJob
 from local_coding_slm.eval.review import accept, reject, rewrite
 from local_coding_slm.eval.routing import RouteSignals, mechanical_signals
@@ -95,6 +96,17 @@ MCP_JOBS: tuple[OrchestrationJob, ...] = (
         signals=mechanical_signals(security_sensitive=True),
         eval_case=CASES_BY_ID["implement_clamp"],
         review=reject(notes="do not apply until bounds are reviewed"),
+    ),
+    OrchestrationJob(
+        id="mcp_rename_exception_unproven",
+        signals=mechanical_signals(),
+        eval_case=CASES_BY_ID["rename_exception_across_files"],
+        local_replies=(
+            RENAME_EXCEPTION_PARTIAL,
+            RENAME_EXCEPTION_PARTIAL,
+            RENAME_EXCEPTION_PARTIAL,
+        ),
+        review=accept(notes="do not apply unproven harder local"),
     ),
 )
 
