@@ -89,6 +89,10 @@ connected through SSH local forwarding.
    on push and pull request, including
    `python scripts/check_deployment_safety.py --skip-listen`.
 
+   The MCP server also calls `classify_base_url` on start and refuses a
+   fail-status `OLLAMA_BASE_URL` (wildcard, tunnel, or public IP). Hostname
+   and private LAN URLs still only warn.
+
 6. Deployment safety checks (no GPU required; inspects this host only):
 
    ```bash

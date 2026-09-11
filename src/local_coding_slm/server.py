@@ -14,6 +14,7 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from local_coding_slm.ollama_client import (  # noqa: E402
+    DEFAULT_BASE_URL,
     OllamaError,
     chat,
     format_user_task,
@@ -21,6 +22,7 @@ from local_coding_slm.ollama_client import (  # noqa: E402
 )
 from local_coding_slm.payload import inspect_payload, refusal_message  # noqa: E402
 from local_coding_slm.prompts import SYSTEM_PROMPTS  # noqa: E402
+from local_coding_slm.safety import classify_base_url  # noqa: E402
 
 
 def _load_dotenv() -> None:
@@ -153,7 +155,22 @@ def local_review(
     return _run_tool("local_review", task, files, language, style, model, max_tokens)
 
 
+def enforce_runtime_base_url(url: str | None = None) -> None:
+    """Refuse to start when OLLAMA_BASE_URL fails classify_base_url.
+
+    Warn status still starts (hostname and private LAN URLs only warn).
+    """
+    raw = os.environ.get("OLLAMA_BASE_URL", DEFAULT_BASE_URL) if url is None else url
+    result = classify_base_url(raw)
+    if result.status == "fail":
+        print(f"ERROR: {result.message}", file=sys.stderr)
+        raise SystemExit(1)
+    if result.status == "warn":
+        print(f"WARNING: {result.message}", file=sys.stderr)
+
+
 def main() -> None:
+    enforce_runtime_base_url()
     mcp.run(transport="stdio")
 
 
