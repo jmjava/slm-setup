@@ -59,6 +59,8 @@ connected through SSH local forwarding.
 2. Copy `.env.example` to `.env`. Same-machine default is
    `http://127.0.0.1:11434`. If you run a second local Ollama (for example a
    newer user-local binary), point `OLLAMA_BASE_URL` at that listener only.
+   A user-local store at `.local-ollama/` (models, `serve.log`, `serve.pid`)
+   is gitignored.
 3. Pull the starter models:
 
    ```bash
