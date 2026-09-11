@@ -119,11 +119,13 @@ connected through SSH local forwarding.
    env-var rename) are
    offline by default.
    `--live` skips with exit 0 when Ollama is down; that skip is not a
-   quality pass:
+   quality pass. `--require-live` writes `eval-runs/live-status.json`
+   `{"skipped": true}` and exits 2 so CI can fail closed:
 
    ```bash
    .venv/bin/python scripts/prove_multifile_refactor.py
    .venv/bin/python scripts/prove_multifile_refactor.py --live --model fast
+   .venv/bin/python scripts/prove_multifile_refactor.py --live --require-live --model fast
    ```
 
 The unit suite proves deterministic client, safety, evaluation-scorer,
