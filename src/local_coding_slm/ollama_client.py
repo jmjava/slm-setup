@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
+from local_coding_slm.safety import OFFICIAL_LIBRARY_TAGS
+
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_FAST_MODEL = "qwen3.5:9b"
 DEFAULT_STRONG_MODEL = "devstral-small-2"
@@ -17,6 +19,11 @@ DEFAULT_NUM_CTX = 16384
 MAX_TOKENS_CAP = 4096
 FAST_TIMEOUT_S = 120
 STRONG_TIMEOUT_S = 300
+ALLOW_UNOFFICIAL_TAGS_ENV = "OLLAMA_ALLOW_UNOFFICIAL_TAGS"
+
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
 class OllamaError(Exception):
@@ -29,6 +36,7 @@ class OllamaSettings:
     fast_model: str
     strong_model: str
     num_ctx: int
+    allow_unofficial: bool = False
 
     @classmethod
     def from_env(cls) -> "OllamaSettings":
@@ -37,15 +45,23 @@ class OllamaSettings:
             fast_model=os.environ.get("OLLAMA_FAST_MODEL", DEFAULT_FAST_MODEL),
             strong_model=os.environ.get("OLLAMA_STRONG_MODEL", DEFAULT_STRONG_MODEL),
             num_ctx=int(os.environ.get("OLLAMA_NUM_CTX", str(DEFAULT_NUM_CTX))),
+            allow_unofficial=_env_flag(ALLOW_UNOFFICIAL_TAGS_ENV),
         )
 
     def resolve_model(self, model: str | None) -> str:
         choice = (model or "fast").strip().lower()
         if choice == "strong":
-            return self.strong_model
-        if choice == "fast":
-            return self.fast_model
-        raise OllamaError(f"model must be 'fast' or 'strong', got {model!r}")
+            tag = self.strong_model
+        elif choice == "fast":
+            tag = self.fast_model
+        else:
+            raise OllamaError(f"model must be 'fast' or 'strong', got {model!r}")
+        if not self.allow_unofficial and tag.strip() not in OFFICIAL_LIBRARY_TAGS:
+            raise OllamaError(
+                f"unofficial_model_tag: {tag!r} is not in OFFICIAL_LIBRARY_TAGS; "
+                f"set {ALLOW_UNOFFICIAL_TAGS_ENV}=1 to override"
+            )
+        return tag
 
     def timeout_s(self, model: str | None) -> int:
         choice = (model or "fast").strip().lower()

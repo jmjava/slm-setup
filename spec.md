@@ -262,6 +262,8 @@ only the files the SLM needs.
 
 - Call `POST {OLLAMA_BASE_URL}/api/chat` with `stream: false`.
 - Map `model=fast|strong` to `OLLAMA_FAST_MODEL` / `OLLAMA_STRONG_MODEL`.
+  `resolve_model` refuses a tag outside `OFFICIAL_LIBRARY_TAGS` unless
+  `OLLAMA_ALLOW_UNOFFICIAL_TAGS=1`.
 - Pass `options.num_ctx` from `OLLAMA_NUM_CTX` (default 16384).
 - Time out (suggested 120s fast / 300s strong) and return a structured error.
 - Never execute shell commands, never write files, never open network ports
@@ -605,7 +607,9 @@ an alignment or integrity win.
   weight files can look helpful and still plant backdoors in generated code.
   This repo will not document how to do that. Pull from the official library,
   pin the tags in `.env`, and review every patch.
-- The checker can reject path/URL-shaped tags and public binds. It **cannot**
+- The checker can reject path/URL-shaped tags and public binds. Unofficial
+  library names still warn there. Runtime `resolve_model` refuses them
+  unless `OLLAMA_ALLOW_UNOFFICIAL_TAGS=1`. The checker **cannot**
   detect a backdoor inside an otherwise normal-looking official tag. Review
   remains mandatory.
 - Do not give the SLM shell, credentials, or unattended merge rights.
