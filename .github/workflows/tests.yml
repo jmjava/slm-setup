@@ -18,6 +18,10 @@ jobs:
         run: python -m ruff check --select F401,F811 src scripts tests
       - name: Complexity proving test
         run: bash scripts/test-check-complexity.sh
+      - name: Vulture proving test
+        run: bash scripts/test-check-vulture.sh
+      - name: Vulture dead code
+        run: bash scripts/check-vulture.sh src scripts tests
       - name: Unit tests
         run: python -m unittest discover -s tests -v
         env:
