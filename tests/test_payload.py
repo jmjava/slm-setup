@@ -68,6 +68,19 @@ class InspectPayloadTests(unittest.TestCase):
             "secret_content",
         )
 
+    def test_encrypted_pkcs8_private_key_is_refused(self) -> None:
+        self.assertEqual(
+            inspect_payload(
+                [
+                    {
+                        "path": "notes.py",
+                        "content": "-----BEGIN ENCRYPTED PRIVATE KEY-----\nfixture\n",
+                    }
+                ]
+            ),
+            "secret_content",
+        )
+
     def test_private_key_in_task(self) -> None:
         self.assertEqual(
             inspect_payload(

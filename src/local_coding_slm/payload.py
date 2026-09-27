@@ -21,6 +21,7 @@ _PRIVATE_KEY_MARKERS = (
     "-----BEGIN OPENSSH PRIVATE KEY-----",
     "-----BEGIN RSA PRIVATE KEY-----",
     "-----BEGIN EC PRIVATE KEY-----",
+    "-----BEGIN ENCRYPTED PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----",
 )
 _SECRET_BASENAMES = frozenset(
