@@ -62,6 +62,9 @@ UNSAFE_MODEL_RE = re.compile(r"://|[\\/]|\.\.|@", re.IGNORECASE)
 # Decimal 2130706433 or 0x7f000001 disguise a dotted IPv4.
 _INTEGER_FORM_IP_RE = re.compile(r"^(?:\d+|0x[0-9a-f]+)$", re.IGNORECASE)
 
+# RFC 2928 IETF Protocol Assignments, the 2001:9::/32 slice. Not a private LAN.
+_IPV6_IETF_2001_9 = ipaddress.IPv6Network("2001:9::/32")
+
 # /proc/net/tcp state 0A = LISTEN
 _LISTEN_STATE = "0A"
 
@@ -83,6 +86,25 @@ def _has_userinfo(parsed: ParseResult) -> bool:
 
 def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
+
+
+def _private_base_url(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> CheckResult:
+    """Fail 2001:9::/32 before the private-LAN warning.
+
+    ipaddress marks that prefix private, so those hosts would otherwise warn
+    and the MCP server would still start.
+    """
+    if isinstance(addr, ipaddress.IPv6Address) and addr in _IPV6_IETF_2001_9:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a unicast host address",
+        )
+    return CheckResult(
+        "base_url",
+        "warn",
+        "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
+    )
 
 
 def classify_base_url(url: str) -> CheckResult:
@@ -141,11 +163,7 @@ def classify_base_url(url: str) -> CheckResult:
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
     if addr.is_private:
-        return CheckResult(
-            "base_url",
-            "warn",
-            "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
-        )
+        return _private_base_url(addr)
     if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
         return CheckResult(
             "base_url",
