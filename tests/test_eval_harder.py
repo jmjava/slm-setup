@@ -77,24 +77,23 @@ class HarderMultifileCorpusTests(unittest.TestCase):
                 self.assertEqual(result.layer("structure").status, "pass")
                 self.assertEqual(result.layer("behavior").status, "fail")
 
-    def test_live_flag_skips_when_ollama_is_down(self) -> None:
+    def test_live_exits_2_when_ollama_is_down(self) -> None:
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
         env["OLLAMA_BASE_URL"] = "http://127.0.0.1:1"
-        proc = subprocess.run(
-            [
-                sys.executable,
-                str(ROOT / "scripts" / "prove_multifile_refactor.py"),
-                "--live",
-            ],
-            cwd=str(ROOT),
-            env=env,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("SKIP live", proc.stdout)
+        for script in ("run_eval.py", "prove_multifile_refactor.py"):
+            with self.subTest(script=script):
+                proc = subprocess.run(
+                    [sys.executable, str(ROOT / "scripts" / script), "--live"],
+                    cwd=str(ROOT),
+                    env=env,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(proc.returncode, 0, proc.stderr)
+                self.assertEqual(proc.returncode, 2, proc.stderr)
+                self.assertIn("SKIP live", proc.stdout)
 
     def test_require_live_exits_2_when_ollama_is_down(self) -> None:
         env = os.environ.copy()
