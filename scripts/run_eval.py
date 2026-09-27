@@ -91,9 +91,7 @@ def _run_fixtures(case_id: str | None, suite: str) -> int:
     return failed
 
 
-async def _run_live(
-    case_id: str | None, model: str, suite: str, *, require_live: bool
-) -> int:
+async def _run_live(case_id: str | None, model: str, suite: str) -> int:
     from local_coding_slm.ollama_client import OllamaSettings, is_reachable
     from local_coding_slm.server import _load_dotenv
 
@@ -103,9 +101,9 @@ async def _run_live(
         _write_live_status(skipped=True)
         print(
             f"SKIP live: Ollama unreachable at {settings.host_label()} "
-            "(offline fixtures still pass; this is not a model-quality fail)"
+            "(exit 2; a requested live rate was not measured)"
         )
-        return 2 if require_live else 0
+        return 2
     _write_live_status(skipped=False)
 
     from mcp import ClientSession, StdioServerParameters
@@ -156,11 +154,15 @@ async def _run_live(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--live", action="store_true", help="Call real Ollama via stdio MCP")
+    parser.add_argument(
+        "--live",
+        action="store_true",
+        help="Call real Ollama via stdio MCP. Exit 2 when Ollama is unreachable.",
+    )
     parser.add_argument(
         "--require-live",
         action="store_true",
-        help="Same as --live, but exit 2 when Ollama is down instead of skip-0.",
+        help="Request a live run. Unreachable Ollama exits 2, same as --live.",
     )
     parser.add_argument("--model", choices=("fast", "strong"), default="fast")
     parser.add_argument("--case", dest="case_id", default=None)
@@ -173,14 +175,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.live or args.require_live:
         raise SystemExit(
-            asyncio.run(
-                _run_live(
-                    args.case_id,
-                    args.model,
-                    args.suite,
-                    require_live=args.require_live,
-                )
-            )
+            asyncio.run(_run_live(args.case_id, args.model, args.suite))
         )
     failed = _run_fixtures(args.case_id, args.suite)
     raise SystemExit(1 if failed else 0)

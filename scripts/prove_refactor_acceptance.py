@@ -3,7 +3,7 @@
 
 Single-file whitespace extract only. For the harder multi-file corpus,
 use ``scripts/prove_multifile_refactor.py`` (offline fixtures by default;
-``--live`` skips when Ollama is down; ``--require-live`` exits 2).
+``--live`` exits 2 when Ollama is down; ``--require-live`` is the same path).
 """
 
 from __future__ import annotations

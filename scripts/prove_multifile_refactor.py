@@ -2,9 +2,9 @@
 """Score the harder multi-file refactor corpus.
 
 Default path is offline fixtures (CI / no GPU). ``--live`` calls real
-``local_refactor`` through stdio MCP and skips with exit 0 when Ollama
-is down. ``--require-live`` is the same path but exits 2 on skip and
-writes ``eval-runs/live-status.json``. A skip is not a model-quality pass.
+``local_refactor`` through stdio MCP and exits 2 when Ollama is down.
+``--require-live`` is the same fail-closed live path and writes
+``eval-runs/live-status.json``. An unreachable host is not a model-quality pass.
 """
 
 from __future__ import annotations
