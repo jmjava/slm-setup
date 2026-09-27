@@ -140,6 +140,20 @@ def classify_base_url(url: str) -> CheckResult:
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    # Discard-only 100::/64 is reserved and private in ipaddress, so this
+    # must run before the LAN warning or a non-unicast host only warns.
+    # Unspecified and IPv4-mapped addresses stay on their own checks.
+    if (
+        isinstance(addr, ipaddress.IPv6Address)
+        and addr.is_reserved
+        and not addr.is_unspecified
+        and addr.ipv4_mapped is None
+    ):
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a unicast host address",
+        )
     if addr.is_private:
         return CheckResult(
             "base_url",

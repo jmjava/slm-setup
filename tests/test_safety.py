@@ -37,6 +37,15 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_private_lan_warns(self) -> None:
         self.assertEqual(classify_base_url("http://192.168.1.10:11434").status, "warn")
 
+    def test_ipv6_discard_prefix_fails_as_non_unicast(self) -> None:
+        for url in ("http://[100::1]:11434", "http://[100::]:11434"):
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+                self.assertIn("unicast", result.message)
+        ula = classify_base_url("http://[fd00::1]:11434")
+        self.assertEqual(ula.status, "warn", ula.message)
+
     def test_hostname_non_loopback_non_private_fails(self) -> None:
         result = classify_base_url("https://my-ollama.evil.com")
         self.assertEqual(result.status, "fail")
