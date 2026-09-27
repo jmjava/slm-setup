@@ -34,6 +34,12 @@ jobs:
         run: python -m pytest tests/test_fitness_score_boundary.py -q
         env:
           PYTHONPATH: src
+      - name: Static baseline proving test
+        run: bash scripts/test-check-static-baseline.sh
+      - name: Frozen static baseline
+        run: |
+          python scripts/check-static-baseline.py
+          git diff --exit-code -- config/ruff/baseline.txt
       - name: Mutation score
         run: python scripts/check-mutmut-policy.py
       - name: Unit tests

@@ -1,0 +1,6 @@
+# Frozen static baseline. Separate from the F401/F811 step in CI.
+# E501 is not selected: line length is not a finding on this list.
+target-version = "py310"
+
+[lint]
+select = ["F"]

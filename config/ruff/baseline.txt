@@ -1,0 +1,16 @@
+# Frozen pyflakes findings. One path<TAB>code per occurrence.
+# The check refuses to rewrite this file.
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
+scripts/vulture-whitelist.py	F821
