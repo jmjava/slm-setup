@@ -49,11 +49,13 @@ TUNNEL_HOST_MARKERS = (
 )
 
 # Documented examples that may appear in committed docs.
+# 198.18.0.0 is the RFC 2544 network base, not a host.
 PLACEHOLDER_IPV4 = frozenset(
     {
         "127.0.0.1",
         "192.0.2.0",
         "192.168.0.0",
+        "198.18.0.0",
     }
 )
 

@@ -143,6 +143,14 @@ class TestHygiene(unittest.TestCase):
         result = classify_tracked_ipv4([("README.md", "use 10.0.0.65")])
         self.assertEqual(result.status, "fail")
 
+    def test_benchmark_network_base_passes_host_fails(self) -> None:
+        base = classify_tracked_ipv4(
+            [("src/local_coding_slm/safety.py", 'IPv4Network("198.18.0.0/15")')]
+        )
+        self.assertEqual(base.status, "pass")
+        host = classify_tracked_ipv4([("README.md", "point Ollama at 198.18.0.1")])
+        self.assertEqual(host.status, "fail")
+
     def test_env_example_ok(self) -> None:
         text = "OLLAMA_BASE_URL=http://127.0.0.1:11434\n# http://<inference-host>:11434\n"
         self.assertEqual(classify_env_example(text).status, "pass")
