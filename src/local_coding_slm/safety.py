@@ -298,7 +298,14 @@ def classify_tracked_ipv4(paths_and_text: Iterable[tuple[str, str]]) -> CheckRes
                 addr = ipaddress.ip_address(match)
             except ValueError:
                 continue
-            if match in PLACEHOLDER_IPV4 or addr.is_loopback or addr.is_unspecified:
+            # Documentation ranges are placeholders in source, not leaked hosts.
+            # classify_base_url still fails them as OLLAMA_BASE_URL.
+            if (
+                match in PLACEHOLDER_IPV4
+                or addr.is_loopback
+                or addr.is_unspecified
+                or _is_documentation_address(addr)
+            ):
                 continue
             if addr.is_private or addr.is_global:
                 hits.append(f"{path}:{match}")

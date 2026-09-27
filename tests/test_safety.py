@@ -140,6 +140,17 @@ class TestHygiene(unittest.TestCase):
         )
         self.assertEqual(result.status, "pass")
 
+    def test_documentation_network_literals_pass(self) -> None:
+        result = classify_tracked_ipv4(
+            [
+                (
+                    "safety.py",
+                    'IPv4Network("198.51.100.0/24") IPv4Network("203.0.113.0/24") 192.0.2.1',
+                )
+            ]
+        )
+        self.assertEqual(result.status, "pass")
+
     def test_real_private_ip_fails(self) -> None:
         result = classify_tracked_ipv4([("README.md", "use 10.0.0.65")])
         self.assertEqual(result.status, "fail")
