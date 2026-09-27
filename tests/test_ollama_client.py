@@ -209,6 +209,37 @@ class ClientTests(unittest.TestCase):
         self.assertIn("max_tokens_too_large", str(raised.exception))
         mocked.assert_not_called()
 
+    def test_chat_refuses_failed_base_url_without_post(self) -> None:
+        settings = OllamaSettings(
+            base_url="http://8.8.8.8:11434",
+            fast_model="qwen3.5:9b",
+            strong_model="devstral-small-2",
+            num_ctx=4096,
+        )
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+        ) as mocked:
+            with self.assertRaises(OllamaError) as raised:
+                chat("sys", "write ping", model="fast", settings=settings)
+        self.assertIn("public", str(raised.exception))
+        mocked.assert_not_called()
+
+    def test_chat_private_lan_warning_still_posts(self) -> None:
+        settings = OllamaSettings(
+            base_url="http://192.168.1.10:11434",
+            fast_model="qwen3.5:9b",
+            strong_model="devstral-small-2",
+            num_ctx=4096,
+        )
+        payload = {"message": {"content": "ok"}}
+        with patch(
+            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            return_value=_FakeResp(payload),
+        ) as mocked:
+            text = chat("sys", "write ping", model="fast", settings=settings)
+        self.assertEqual(text, "ok")
+        mocked.assert_called()
+
     def test_chat_rejects_unofficial_tag_without_post(self) -> None:
         settings = OllamaSettings(
             base_url="http://127.0.0.1:11434",

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
-from local_coding_slm.safety import is_official_library_tag
+from local_coding_slm.safety import classify_base_url, is_official_library_tag
 
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_FAST_MODEL = "qwen3.5:9b"
@@ -165,6 +165,9 @@ def chat(
     settings: OllamaSettings | None = None,
 ) -> str:
     settings = settings or OllamaSettings.from_env()
+    base = classify_base_url(settings.base_url)
+    if base.status == "fail":
+        raise OllamaError(base.message)
     tag = settings.resolve_model(model)
     timeout_s = settings.timeout_s(model)
     num_predict = MAX_TOKENS_CAP
