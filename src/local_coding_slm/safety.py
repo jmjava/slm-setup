@@ -140,6 +140,14 @@ def classify_base_url(url: str) -> CheckResult:
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    # Class E and the limited broadcast are private in ipaddress, so this
+    # must run before the LAN warning or a non-unicast host only warns.
+    if isinstance(addr, ipaddress.IPv4Address) and addr.is_reserved:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a unicast host address",
+        )
     if addr.is_private:
         return CheckResult(
             "base_url",
