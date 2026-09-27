@@ -1,5 +1,7 @@
 import json
 import os
+import socket
+import threading
 import unittest
 from unittest.mock import patch
 from urllib.error import URLError
@@ -147,7 +149,7 @@ class ClientTests(unittest.TestCase):
             ]
         }
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp(payload),
         ):
             names = list_model_names(self.settings)
@@ -156,7 +158,7 @@ class ClientTests(unittest.TestCase):
     def test_status_report_marks_present_models(self) -> None:
         payload = {"models": [{"name": "qwen3.5:9b"}]}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp(payload),
         ):
             report = status_report(self.settings)
@@ -167,7 +169,7 @@ class ClientTests(unittest.TestCase):
     def test_chat_returns_message_content(self) -> None:
         payload = {"message": {"content": "def ping(): return True"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp(payload),
         ) as mocked:
             text = chat("sys", "write ping", model="fast", settings=self.settings)
@@ -180,7 +182,7 @@ class ClientTests(unittest.TestCase):
     def test_chat_num_predict_equals_requested(self) -> None:
         payload = {"message": {"content": "ok"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp(payload),
         ) as mocked:
             chat(
@@ -196,7 +198,7 @@ class ClientTests(unittest.TestCase):
 
     def test_chat_max_tokens_above_cap_raises_without_post(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
         ) as mocked:
             with self.assertRaises(OllamaError) as raised:
                 chat(
@@ -217,7 +219,7 @@ class ClientTests(unittest.TestCase):
             num_ctx=4096,
         )
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
         ) as mocked:
             with self.assertRaises(OllamaError) as raised:
                 chat("sys", "write ping", model="fast", settings=settings)
@@ -228,7 +230,7 @@ class ClientTests(unittest.TestCase):
         """Leftover #8: default clamp is options.num_predict, not payload.MAX_TOKENS."""
         payload = {"message": {"content": "ok"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp(payload),
         ) as mocked:
             chat("sys", "write ping", model="fast", settings=self.settings)
@@ -240,7 +242,7 @@ class ClientTests(unittest.TestCase):
         """Leftover #8: max(1, requested) must show up in the POST body."""
         payload = {"message": {"content": "ok"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp(payload),
         ) as mocked:
             chat(
@@ -258,7 +260,7 @@ class ClientTests(unittest.TestCase):
     def test_chat_max_tokens_9000_does_not_post_clamped_body(self) -> None:
         """Leftover #8: inspect_payload(9000) is not enough; client must not POST 4096."""
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
         ) as mocked:
             with self.assertRaises(OllamaError) as raised:
                 chat(
@@ -273,7 +275,7 @@ class ClientTests(unittest.TestCase):
 
     def test_unreachable_becomes_ollama_error(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             side_effect=URLError("down"),
         ):
             with self.assertRaises(OllamaError):
@@ -281,17 +283,86 @@ class ClientTests(unittest.TestCase):
 
     def test_is_reachable_true_on_tags(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             return_value=_FakeResp({"models": []}),
         ):
             self.assertTrue(is_reachable(self.settings))
 
     def test_is_reachable_false_when_down(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._urlopen",
             side_effect=URLError("down"),
         ):
             self.assertFalse(is_reachable(self.settings))
+
+    def test_chat_refuses_redirect_off_base_url(self) -> None:
+        """A 307 must not deliver the prompt to another host."""
+        hits: list[bytes] = []
+
+        def _serve(sock: socket.socket, response: bytes, record: list[bytes] | None) -> None:
+            sock.settimeout(2)
+            try:
+                conn, _ = sock.accept()
+            except TimeoutError:
+                return
+            with conn:
+                data = b""
+                conn.settimeout(1)
+                try:
+                    while b"\r\n\r\n" not in data:
+                        chunk = conn.recv(65536)
+                        if not chunk:
+                            break
+                        data += chunk
+                except TimeoutError:
+                    pass
+                if record is not None:
+                    record.append(data)
+                conn.sendall(response)
+
+        evil = socket.socket()
+        evil.bind(("127.0.0.1", 0))
+        evil.listen(1)
+        evil_port = evil.getsockname()[1]
+        body = b'{"message":{"content":"stolen"}}'
+        evil_response = (
+            b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+            + str(len(body)).encode()
+            + b"\r\nConnection: close\r\n\r\n"
+            + body
+        )
+        ollama = socket.socket()
+        ollama.bind(("127.0.0.1", 0))
+        ollama.listen(1)
+        ollama_port = ollama.getsockname()[1]
+        location = f"http://127.0.0.1:{evil_port}/steal".encode()
+        ollama_response = (
+            b"HTTP/1.1 307 Temporary Redirect\r\nLocation: "
+            + location
+            + b"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+        )
+        threads = [
+            threading.Thread(target=_serve, args=(evil, evil_response, hits), daemon=True),
+            threading.Thread(target=_serve, args=(ollama, ollama_response, None), daemon=True),
+        ]
+        for thread in threads:
+            thread.start()
+        settings = OllamaSettings(
+            base_url=f"http://127.0.0.1:{ollama_port}",
+            fast_model="qwen3.5:9b",
+            strong_model="devstral-small-2",
+            num_ctx=4096,
+        )
+        try:
+            with self.assertRaises(OllamaError) as raised:
+                chat("sys", "write ping", model="fast", settings=settings)
+            self.assertIn("redirect", str(raised.exception).lower())
+            self.assertEqual(hits, [])
+        finally:
+            for thread in threads:
+                thread.join(timeout=3)
+            evil.close()
+            ollama.close()
 
     def test_format_user_task_includes_files(self) -> None:
         text = format_user_task(

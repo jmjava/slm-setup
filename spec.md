@@ -267,7 +267,8 @@ only the files the SLM needs.
 - Pass `options.num_ctx` from `OLLAMA_NUM_CTX` (default 16384).
 - Time out (suggested 120s fast / 300s strong) and return a structured error.
 - Never execute shell commands, never write files, never open network ports
-  other than the configured Ollama URL.
+  other than the configured Ollama URL. Do not follow HTTP redirects; a 3xx
+  from that URL is an error.
 - Redact nothing special in committed code; do not log full prompts to disk by
   default.
 
@@ -574,6 +575,7 @@ are not part of this design. Use a local session on the workstation.
   arguments.
 - Committed configs must not contain IPs, hostnames, tokens, or usernames.
 - The MCP server is a local process. It should talk only to `OLLAMA_BASE_URL`.
+  HTTP redirects are refused so the prompt stays on that URL.
 - If you later add any HTTP MCP transport, put it on localhost and authenticate
   it. Phase 1 stays on stdio.
 - Treat MCP tool results as **untrusted model output**. The premium agent

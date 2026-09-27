@@ -1,4 +1,7 @@
-"""HTTP client for a private Ollama instance. Talks only to OLLAMA_BASE_URL."""
+"""HTTP client for a private Ollama instance. Talks only to OLLAMA_BASE_URL.
+
+HTTP redirects are refused. A 3xx must not move the prompt to another host.
+"""
 
 from __future__ import annotations
 
@@ -72,6 +75,21 @@ class OllamaSettings:
         return parsed.hostname or "unknown"
 
 
+class _RefuseRedirect(urllib.request.HTTPRedirectHandler):
+    """Stay on the configured Ollama URL. A redirect is not a second host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        del req, fp, msg, headers
+        raise OllamaError(
+            f"Ollama redirect refused ({code} {newurl}); stay on the configured base URL"
+        )
+
+
+def _urlopen(req: urllib.request.Request, timeout_s: int):
+    opener = urllib.request.build_opener(_RefuseRedirect)
+    return opener.open(req, timeout=timeout_s)
+
+
 def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, Any]:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -81,7 +99,7 @@ def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, A
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        with _urlopen(req, timeout_s) as resp:
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:400]
@@ -102,7 +120,7 @@ def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, A
 def _get_json(url: str, timeout_s: int) -> dict[str, Any]:
     req = urllib.request.Request(url, method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        with _urlopen(req, timeout_s) as resp:
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:400]
