@@ -28,6 +28,11 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_wildcard_fails(self) -> None:
         self.assertEqual(classify_base_url("http://0.0.0.0:11434").status, "fail")
 
+    def test_ipv4_mapped_unspecified_fails_as_wildcard(self) -> None:
+        result = classify_base_url("http://[::ffff:0.0.0.0]:11434")
+        self.assertEqual(result.status, "fail")
+        self.assertIn("wildcard", result.message)
+
     def test_tunnel_fails(self) -> None:
         self.assertEqual(classify_base_url("https://abc.ngrok.io").status, "fail")
 
@@ -109,6 +114,21 @@ class TestLocalListen(unittest.TestCase):
     def test_wildcard_listen_fails(self) -> None:
         result = classify_local_listeners([("0.0.0.0", 11434)])
         self.assertEqual(result.status, "fail")
+
+    def test_ipv4_mapped_unspecified_listen_fails(self) -> None:
+        # tcp6 IPv4-mapped 0.0.0.0 LISTEN compresses to ::ffff:0:0.
+        text = (
+            "  sl  local_address rem_address   st\n"
+            "   0: 0000000000000000FFFF000000000000:2CAA "
+            "00000000000000000000000000000000:0000 0A 00000000:00000000\n"
+        )
+        rows = parse_proc_net_listen_ports(text)
+        self.assertEqual(rows, [("::ffff:0:0", 11434)])
+        result = classify_local_listeners(rows)
+        self.assertEqual(result.status, "fail")
+        self.assertIn("::ffff:0:0", result.message)
+        mapped_loopback = classify_local_listeners([("::ffff:127.0.0.1", 11434)])
+        self.assertEqual(mapped_loopback.status, "pass")
 
     def test_loopback_listen_passes(self) -> None:
         result = classify_local_listeners([("127.0.0.1", 11434)])

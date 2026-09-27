@@ -85,6 +85,12 @@ def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
 
 
+def _is_ipv4_mapped_unspecified(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """True for ::ffff:0.0.0.0 and the compressed ::ffff:0:0 listen spelling."""
+    mapped = getattr(addr, "ipv4_mapped", None)
+    return mapped is not None and mapped.is_unspecified
+
+
 def classify_base_url(url: str) -> CheckResult:
     """Prefer loopback. Fail wildcards, tunnels, hostnames, userinfo, and non-http(s)."""
     raw = (url or "").strip()
@@ -140,6 +146,12 @@ def classify_base_url(url: str) -> CheckResult:
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    if _is_ipv4_mapped_unspecified(addr):
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL must not use a wildcard bind address",
+        )
     if addr.is_private:
         return CheckResult(
             "base_url",
@@ -237,6 +249,16 @@ def _hex_ip(addr_hex: str) -> str | None:
     return None
 
 
+def _listen_ip_is_wildcard(ip: str) -> bool:
+    if ip in {"0.0.0.0", "::", "::0"}:
+        return True
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False
+    return _is_ipv4_mapped_unspecified(addr)
+
+
 def classify_local_listeners(
     rows: Sequence[tuple[str, int]],
     port: int = 11434,
@@ -249,7 +271,7 @@ def classify_local_listeners(
             "warn",
             f"no local LISTEN on :{port} (Ollama may be down or on another port)",
         )
-    wild = [ip for ip, _ in matching if ip in {"0.0.0.0", "::", "::0"}]
+    wild = [ip for ip, _ in matching if _listen_ip_is_wildcard(ip)]
     if wild:
         return CheckResult(
             "local_listen",
