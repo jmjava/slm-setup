@@ -76,6 +76,23 @@ class ServerRuntimeSafetyTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, 1)
         run.assert_not_called()
 
+    def test_ipv6_ietf_2001_3_fails_as_non_unicast(self) -> None:
+        for url in ("http://[2001:3::]:11434", "http://[2001:3::1]:11434"):
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+                self.assertIn("not a unicast", result.message)
+                with (
+                    patch("local_coding_slm.server.mcp.run") as run,
+                    patch.dict(os.environ, {"OLLAMA_BASE_URL": url}, clear=False),
+                ):
+                    with self.assertRaises(SystemExit) as raised:
+                        main()
+                self.assertEqual(raised.exception.code, 1)
+                run.assert_not_called()
+        self.assertEqual(classify_base_url("http://192.168.1.10:11434").status, "warn")
+        self.assertEqual(classify_base_url("http://[fd00::1]:11434").status, "warn")
+
     def test_server_start_userinfo_and_decimal_ip_fail(self) -> None:
         # Leftover #12: userinfo / decimal-IP tricks fail; leftover #10 still refuse.
         for url in ("http://127.0.0.1@evil.com", "http://2130706433:11434"):

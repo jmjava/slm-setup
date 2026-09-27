@@ -62,6 +62,10 @@ UNSAFE_MODEL_RE = re.compile(r"://|[\\/]|\.\.|@", re.IGNORECASE)
 # Decimal 2130706433 or 0x7f000001 disguise a dotted IPv4.
 _INTEGER_FORM_IP_RE = re.compile(r"^(?:\d+|0x[0-9a-f]+)$", re.IGNORECASE)
 
+# IETF assignment block 2001:3::/32. Python marks this prefix globally
+# reachable, so it would otherwise fail as a public address.
+_IPV6_IETF_2001_3 = ipaddress.IPv6Network("2001:3::/32")
+
 # /proc/net/tcp state 0A = LISTEN
 _LISTEN_STATE = "0A"
 
@@ -83,6 +87,18 @@ def _has_userinfo(parsed: ParseResult) -> bool:
 
 def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
+
+
+def _is_non_unicast_host(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Fail 2001:3::/32 as non-unicast before the public-address message.
+
+    ipaddress marks that prefix globally reachable, so those hosts would
+    otherwise fail as a public IP and still stop the MCP server, but not
+    as a non-unicast host.
+    """
+    if isinstance(addr, ipaddress.IPv6Address) and addr in _IPV6_IETF_2001_3:
+        return True
+    return bool(addr.is_unspecified or addr.is_multicast or addr.is_reserved)
 
 
 def classify_base_url(url: str) -> CheckResult:
@@ -146,7 +162,7 @@ def classify_base_url(url: str) -> CheckResult:
             "warn",
             "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
         )
-    if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
+    if _is_non_unicast_host(addr):
         return CheckResult(
             "base_url",
             "fail",
