@@ -591,7 +591,8 @@ The checker looks at *this* host only: `OLLAMA_BASE_URL`, model tags, whether
 on a wildcard. It does **not** scan other machines and it cannot prove weights
 are clean. The stdio MCP server also calls `classify_base_url` at start and
 exits if that check fails. Hostnames fail. Userinfo (`user@host`) and
-decimal or integer-form IPs fail. Private LAN URLs still only warn.
+decimal or integer-form IPs fail. Local-use NAT64 addresses in
+64:ff9b:1::/48 fail as non-unicast hosts. Private LAN URLs still only warn.
 
 ### 12.2 Open-weight models
 
