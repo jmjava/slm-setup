@@ -397,7 +397,15 @@ def run_checks(
     )
 
     if skip_listen:
-        results.append(CheckResult("local_listen", "warn", "local listen check skipped"))
+        # Explicit opt-out, not a finding. A missing listener still warns
+        # when the listen check actually runs.
+        results.append(
+            CheckResult(
+                "local_listen",
+                "pass",
+                "local listen check skipped by --skip-listen",
+            )
+        )
     else:
         rows = list(listen_rows) if listen_rows is not None else read_local_tcp_tables()
         port = urlparse(url).port or 11434

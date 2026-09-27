@@ -33,6 +33,15 @@ def main() -> None:
         action="store_true",
         help="Skip the local Ollama bind check (CI without a listener)",
     )
+    parser.add_argument(
+        "--fail-on-warn",
+        action="store_true",
+        help=(
+            "Exit 1 when the worst status is warn. This is the CI gate. "
+            "A plain local run that only warns still prints WARN and exits 0; "
+            "that run is not the gate."
+        ),
+    )
     args = parser.parse_args()
     _load_dotenv()
     results = run_checks(root=ROOT, skip_listen=args.skip_listen)
@@ -44,7 +53,7 @@ def main() -> None:
         raise SystemExit(1)
     if status == "warn":
         print("WARN deployment safety")
-        raise SystemExit(0)
+        raise SystemExit(1 if args.fail_on_warn else 0)
     print("PASS deployment safety")
     raise SystemExit(0)
 

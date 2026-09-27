@@ -89,12 +89,16 @@ connected through SSH local forwarding.
 
    GitHub Actions (`.github/workflows/tests.yml`) runs the same no-GPU path
    on push and pull request, including
-   `python scripts/check_deployment_safety.py --skip-listen`.
+   `python scripts/check_deployment_safety.py --skip-listen --fail-on-warn`.
+   That `--fail-on-warn` flag is the deployment-safety gate: a warn exits 1.
+   A plain local run that only warns still prints `WARN deployment safety`
+   and exits 0. That local run is not the gate.
 
    The MCP server also calls `classify_base_url` on start and refuses a
    fail-status `OLLAMA_BASE_URL` (wildcard, tunnel, public IP, hostname,
    userinfo, or decimal/integer-form IP). Private LAN URLs still only warn;
-   the checker then prints `WARN deployment safety`, not PASS.
+   the checker then prints `WARN deployment safety`, not PASS. `--skip-listen`
+   records the skipped bind check as pass; it is not itself a safety warning.
 
 6. Deployment safety checks (no GPU required; inspects this host only):
 

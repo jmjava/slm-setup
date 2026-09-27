@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"
 SCRIPT = ROOT / "scripts" / "check_deployment_safety.py"
 DEPLOYMENT_SAFETY = "Deployment safety"
-CI_COMMAND = "python scripts/check_deployment_safety.py --skip-listen"
+CI_COMMAND = "python scripts/check_deployment_safety.py --skip-listen --fail-on-warn"
 
 
 def _load_script() -> ModuleType:
@@ -73,19 +73,19 @@ class DeploymentSafetyCiTests(unittest.TestCase):
         env = os.environ.copy()
         env["PYTHONPATH"] = str(ROOT / "src") + os.pathsep + env.get("PYTHONPATH", "")
         proc = subprocess.run(
-            [sys.executable, str(SCRIPT), "--skip-listen"],
+            [sys.executable, str(SCRIPT), "--skip-listen", "--fail-on-warn"],
             cwd=str(ROOT),
             env=env,
             capture_output=True,
             text=True,
             check=False,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("deployment safety", proc.stdout)
-        self.assertNotIn("PASS deployment safety", proc.stdout)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("PASS deployment safety", proc.stdout)
+        self.assertIn("local listen check skipped by --skip-listen", proc.stdout)
 
     def test_warnings_only_does_not_print_pass(self) -> None:
-        """Hostile/warnings-only config must not print PASS as success."""
+        """A plain local warn prints WARN and exits 0. That run is not the gate."""
         module = _load_script()
         with patch.dict(os.environ, {"OLLAMA_BASE_URL": "http://192.168.1.10:11434"}):
             code, stdout, stderr = _run_main(
@@ -94,6 +94,18 @@ class DeploymentSafetyCiTests(unittest.TestCase):
         self.assertEqual(code, 0, stderr)
         self.assertNotIn("PASS deployment safety", stdout)
         self.assertIn("WARN deployment safety", stdout)
+
+    def test_warn_exits_nonzero_on_fail_on_warn_gate(self) -> None:
+        """The CI gate (--skip-listen --fail-on-warn) must not exit 0 on warn."""
+        module = _load_script()
+        with patch.dict(os.environ, {"OLLAMA_BASE_URL": "http://192.168.1.10:11434"}):
+            code, stdout, stderr = _run_main(
+                module, [str(SCRIPT), "--skip-listen", "--fail-on-warn"]
+            )
+        self.assertNotEqual(code, 0, stderr)
+        self.assertEqual(code, 1)
+        self.assertIn("WARN deployment safety", stdout)
+        self.assertNotIn("PASS deployment safety", stdout)
 
     def test_hostname_url_fails_deployment_safety(self) -> None:
         module = _load_script()

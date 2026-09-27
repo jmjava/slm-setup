@@ -592,6 +592,10 @@ on a wildcard. It does **not** scan other machines and it cannot prove weights
 are clean. The stdio MCP server also calls `classify_base_url` at start and
 exits if that check fails. Hostnames fail. Userinfo (`user@host`) and
 decimal or integer-form IPs fail. Private LAN URLs still only warn.
+The CI gate is `python scripts/check_deployment_safety.py --skip-listen
+--fail-on-warn`, which exits 1 on warn. A plain local run that only warns
+exits 0 and is not the gate. `--skip-listen` is an explicit opt-out, not a
+warning.
 
 ### 12.2 Open-weight models
 

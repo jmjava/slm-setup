@@ -13,7 +13,7 @@ from local_coding_slm.server import enforce_runtime_base_url, main
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = ROOT / "src" / "local_coding_slm" / "server.py"
 WORKFLOW = ROOT / ".github" / "workflows" / "tests.yml"
-CI_COMMAND = "python scripts/check_deployment_safety.py --skip-listen"
+CI_COMMAND = "python scripts/check_deployment_safety.py --skip-listen --fail-on-warn"
 
 
 class ServerRuntimeSafetyTests(unittest.TestCase):

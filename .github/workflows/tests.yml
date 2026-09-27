@@ -39,4 +39,4 @@ jobs:
       - name: Stub MCP observed failover
         run: python scripts/run_harness.py --backend stub --profile observed --fast-ms 1 --strong-ms 1
       - name: Deployment safety
-        run: python scripts/check_deployment_safety.py --skip-listen
+        run: python scripts/check_deployment_safety.py --skip-listen --fail-on-warn
