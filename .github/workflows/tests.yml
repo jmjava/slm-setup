@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -18,10 +20,22 @@ jobs:
         run: python -m ruff check --select F401,F811 src scripts tests
       - name: Complexity proving test
         run: bash scripts/test-check-complexity.sh
+      - name: Complexity diff gate
+        run: python scripts/check-complexity.py --base origin/main
+      - name: Hotspot proving test
+        run: bash scripts/test-check-hotspot.sh
+      - name: Hotspot gate
+        run: python scripts/check-hotspot.py --base origin/main
       - name: Vulture proving test
         run: bash scripts/test-check-vulture.sh
       - name: Vulture dead code
         run: bash scripts/check-vulture.sh src scripts tests
+      - name: Fitness function
+        run: python -m pytest tests/test_fitness_score_boundary.py -q
+        env:
+          PYTHONPATH: src
+      - name: Mutation score
+        run: python scripts/check-mutmut-policy.py
       - name: Unit tests
         run: python -m unittest discover -s tests -v
         env:

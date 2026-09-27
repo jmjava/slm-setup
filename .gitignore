@@ -10,4 +10,5 @@ venv/
 .DS_Store
 eval-runs/
 .local-ollama/
+mutants/
 *.local.md

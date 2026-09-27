@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = ["mcp>=1.9.0,<2"]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.11", "lizard==1.24.0", "vulture>=2.14"]
+dev = ["ruff>=0.11", "lizard==1.24.0", "vulture>=2.14", "pytest>=8", "mutmut>=3.3,<4"]
 
 [project.scripts]
 local-coding-slm = "local_coding_slm.server:main"
@@ -24,3 +24,14 @@ src = ["src"]
 
 [tool.ruff.lint]
 select = ["F401", "F811"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.mutmut]
+source_paths = ["src"]
+only_mutate = ["src/local_coding_slm/eval/policy.py"]
+pytest_add_cli_args = ["-q", "--tb=line"]
+pytest_add_cli_args_test_selection = ["tests/test_eval_harness.py::PolicyTests"]
+use_git_change_detection = false
+mutate_only_covered_lines = true
