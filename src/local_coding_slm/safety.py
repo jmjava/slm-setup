@@ -65,6 +65,12 @@ _INTEGER_FORM_IP_RE = re.compile(r"^(?:\d+|0x[0-9a-f]+)$", re.IGNORECASE)
 # /proc/net/tcp state 0A = LISTEN
 _LISTEN_STATE = "0A"
 
+# RFC 2544 198.18.0.0/15 and RFC 5180 2001:2::/48. Not operational hosts.
+_BENCHMARK_NETWORKS = (
+    ipaddress.IPv4Network("198.18.0.0/15"),
+    ipaddress.IPv6Network("2001:2::/48"),
+)
+
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -83,6 +89,33 @@ def _has_userinfo(parsed: ParseResult) -> bool:
 
 def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
+
+
+def _is_benchmark_address(
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> bool:
+    """True for device-benchmark ranges, which are not private LAN hosts."""
+    return any(
+        addr.version == network.version and addr in network
+        for network in _BENCHMARK_NETWORKS
+    )
+
+
+def _private_base_url_result(
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> CheckResult:
+    """Fail benchmark ranges that ipaddress marks private; warn for real LANs."""
+    if _is_benchmark_address(addr):
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is a benchmarking address, not a host",
+        )
+    return CheckResult(
+        "base_url",
+        "warn",
+        "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
+    )
 
 
 def classify_base_url(url: str) -> CheckResult:
@@ -140,12 +173,10 @@ def classify_base_url(url: str) -> CheckResult:
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    # Benchmark ranges are private in ipaddress, so this must run before the
+    # LAN warning or a non-host only warns and the server still starts.
     if addr.is_private:
-        return CheckResult(
-            "base_url",
-            "warn",
-            "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
-        )
+        return _private_base_url_result(addr)
     if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
         return CheckResult(
             "base_url",
