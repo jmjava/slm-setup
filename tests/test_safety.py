@@ -37,6 +37,20 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_private_lan_warns(self) -> None:
         self.assertEqual(classify_base_url("http://192.168.1.10:11434").status, "warn")
 
+    def test_documentation_addresses_fail_as_non_hosts(self) -> None:
+        for url in (
+            "http://192.0.2.1:11434",
+            "http://198.51.100.1:11434",
+            "http://203.0.113.1:11434",
+            "http://[2001:db8::1]:11434",
+        ):
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+                self.assertIn("documentation", result.message)
+        lan = classify_base_url("http://192.168.1.10:11434")
+        self.assertEqual(lan.status, "warn", lan.message)
+
     def test_hostname_non_loopback_non_private_fails(self) -> None:
         result = classify_base_url("https://my-ollama.evil.com")
         self.assertEqual(result.status, "fail")
