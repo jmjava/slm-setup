@@ -52,10 +52,14 @@ TUNNEL_HOST_MARKERS = (
 PLACEHOLDER_IPV4 = frozenset(
     {
         "127.0.0.1",
+        "192.0.0.0",
         "192.0.2.0",
         "192.168.0.0",
     }
 )
+
+# RFC 6890 IETF Protocol Assignments. Not a private LAN.
+_IETF_PROTOCOL_V4 = ipaddress.IPv4Network("192.0.0.0/24")
 
 IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 UNSAFE_MODEL_RE = re.compile(r"://|[\\/]|\.\.|@", re.IGNORECASE)
@@ -83,6 +87,26 @@ def _has_userinfo(parsed: ParseResult) -> bool:
 
 def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
+
+
+def _private_base_url(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> CheckResult:
+    """Fail IETF protocol assignments before the private-LAN warning.
+
+    ipaddress marks 192.0.0.0/24 private, so those hosts would otherwise warn
+    and the MCP server would still start. The network base itself may appear
+    as a documented prefix; a host in that block is not a LAN address.
+    """
+    if isinstance(addr, ipaddress.IPv4Address) and addr in _IETF_PROTOCOL_V4:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a unicast host address",
+        )
+    return CheckResult(
+        "base_url",
+        "warn",
+        "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
+    )
 
 
 def classify_base_url(url: str) -> CheckResult:
@@ -141,11 +165,7 @@ def classify_base_url(url: str) -> CheckResult:
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
     if addr.is_private:
-        return CheckResult(
-            "base_url",
-            "warn",
-            "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
-        )
+        return _private_base_url(addr)
     if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
         return CheckResult(
             "base_url",

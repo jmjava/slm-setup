@@ -37,6 +37,14 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_private_lan_warns(self) -> None:
         self.assertEqual(classify_base_url("http://192.168.1.10:11434").status, "warn")
 
+    def test_ietf_protocol_assignment_fails_as_non_unicast(self) -> None:
+        for url in ("http://192.0.0.1:11434", "http://192.0.0.8:11434"):
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+                self.assertIn("unicast", result.message)
+        self.assertEqual(classify_base_url("http://192.168.1.10:11434").status, "warn")
+
     def test_hostname_non_loopback_non_private_fails(self) -> None:
         result = classify_base_url("https://my-ollama.evil.com")
         self.assertEqual(result.status, "fail")
@@ -129,6 +137,12 @@ class TestHygiene(unittest.TestCase):
     def test_real_private_ip_fails(self) -> None:
         result = classify_tracked_ipv4([("README.md", "use 10.0.0.65")])
         self.assertEqual(result.status, "fail")
+
+    def test_ietf_network_base_is_placeholder(self) -> None:
+        base = classify_tracked_ipv4([("safety.py", "prefix 192.0.0.0/24")])
+        self.assertEqual(base.status, "pass")
+        host = classify_tracked_ipv4([("README.md", "use 192.0.0.8")])
+        self.assertEqual(host.status, "fail")
 
     def test_env_example_ok(self) -> None:
         text = "OLLAMA_BASE_URL=http://127.0.0.1:11434\n# http://<inference-host>:11434\n"
