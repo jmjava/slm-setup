@@ -134,9 +134,16 @@ class TestLocalListen(unittest.TestCase):
 class TestHygiene(unittest.TestCase):
     def test_placeholder_ips_pass(self) -> None:
         result = classify_tracked_ipv4(
-            [("spec.md", "example 192.168.0.0/16 and 192.0.2.0/24 and 127.0.0.1")]
+            [
+                (
+                    "spec.md",
+                    "example 192.168.0.0/16 and 192.0.2.0/24 and 127.0.0.1 and 169.254.0.0/16",
+                )
+            ]
         )
         self.assertEqual(result.status, "pass")
+        host = classify_tracked_ipv4([("README.md", "http://169.254.1.1:11434")])
+        self.assertEqual(host.status, "fail")
 
     def test_real_private_ip_fails(self) -> None:
         result = classify_tracked_ipv4([("README.md", "use 10.0.0.65")])

@@ -52,6 +52,7 @@ TUNNEL_HOST_MARKERS = (
 PLACEHOLDER_IPV4 = frozenset(
     {
         "127.0.0.1",
+        "169.254.0.0",
         "192.0.2.0",
         "192.168.0.0",
     }
