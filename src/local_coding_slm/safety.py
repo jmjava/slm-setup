@@ -85,6 +85,29 @@ def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
 
 
+# RFC 5180 benchmarking prefix. Not a private LAN.
+_IPV6_BENCHMARKING = ipaddress.IPv6Network("2001:2::/48")
+
+
+def _private_base_url(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> CheckResult:
+    """Fail the IPv6 benchmarking prefix before the private-LAN warning.
+
+    ipaddress marks 2001::/23 private, so 2001:2::/48 would otherwise warn and
+    the MCP server would still start.
+    """
+    if isinstance(addr, ipaddress.IPv6Address) and addr in _IPV6_BENCHMARKING:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a unicast host address",
+        )
+    return CheckResult(
+        "base_url",
+        "warn",
+        "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
+    )
+
+
 def classify_base_url(url: str) -> CheckResult:
     """Prefer loopback. Fail wildcards, tunnels, hostnames, userinfo, and non-http(s)."""
     raw = (url or "").strip()
@@ -141,11 +164,7 @@ def classify_base_url(url: str) -> CheckResult:
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
     if addr.is_private:
-        return CheckResult(
-            "base_url",
-            "warn",
-            "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
-        )
+        return _private_base_url(addr)
     if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
         return CheckResult(
             "base_url",
