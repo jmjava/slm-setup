@@ -245,7 +245,12 @@ def _hex_ip(addr_hex: str) -> str | None:
         # IPv4-mapped or IPv6 stored little-endian 32-bit words.
         words = [raw[i : i + 4][::-1] for i in range(0, 16, 4)]
         packed = b"".join(words)
-        return str(ipaddress.IPv6Address(packed))
+        addr = ipaddress.IPv6Address(packed)
+        mapped = addr.ipv4_mapped
+        if mapped is not None:
+            # 3.12.3 prints ::ffff:0:0; 3.12.14 prints ::ffff:0.0.0.0.
+            return f"::ffff:{mapped}"
+        return str(addr)
     return None
 
 
