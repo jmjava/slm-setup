@@ -28,6 +28,11 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_wildcard_fails(self) -> None:
         self.assertEqual(classify_base_url("http://0.0.0.0:11434").status, "fail")
 
+    def test_unspecified_ipv6_alias_fails_as_wildcard(self) -> None:
+        result = classify_base_url("http://[::0]:11434")
+        self.assertEqual(result.status, "fail")
+        self.assertIn("wildcard", result.message)
+
     def test_tunnel_fails(self) -> None:
         self.assertEqual(classify_base_url("https://abc.ngrok.io").status, "fail")
 

@@ -140,13 +140,21 @@ def classify_base_url(url: str) -> CheckResult:
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    # ::0 and other unspecified spellings are private in ipaddress, so this
+    # must run before the LAN warning or a wildcard bind starts the server.
+    if addr.is_unspecified:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL must not use a wildcard bind address",
+        )
     if addr.is_private:
         return CheckResult(
             "base_url",
             "warn",
             "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
         )
-    if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
+    if addr.is_multicast or addr.is_reserved:
         return CheckResult(
             "base_url",
             "fail",
