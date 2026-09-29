@@ -11,23 +11,29 @@ LAN addresses, or SKUs here.
 | 1 — inference host | Done on the workstation lab | Ollama + starter tags on a private GPU |
 | 2 — MCP bridge | Done | `local-coding-slm` stdio tools; Cursor / Copilot / Claude adapters |
 | 3 — measure | Protocol + expanded corpus + harder multi-file suite + MCP apply gate + CI; live rates still informal | Layered scoring; scripted premium routing/review; no auto-classifier yet |
-| T12 Part A second NVIDIA host | Blocked on host power | WSL GPU via SSH; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
+| T12 Part A second NVIDIA host | Planned clear early Nov 2026 | Downstairs WSL GPU via SSH — was blocked on host power; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
 | T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
 
 Finish Phase 3 measurement (layered live rates on the committed corpus)
-and the existing second-host checks before treating Halo as the next lab.
+and clear the downstairs second-host path (T12 Part A) before treating Halo
+as the only next lab.
+
+**Downstairs (second PC / WSL NVIDIA):** power on and finish SSH forward in
+**early Nov 2026** so Part A live rates are not stuck on the workstation while
+waiting for the 395. Public-safe notes:
+[examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md).
 
 **Halo / Ryzen AI Max+ 395:** planned acquire around **Black Friday week Nov 2026**.
-Until then keep live measurement on the workstation Ollama host. Claim Phase 4
-only after the box is up (A13). Paper track coordinates this in
+Until A13 passes, prefer downstairs for live measurement. Claim Phase 4 only
+after the box is up. Paper track coordinates this in
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
 
 Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**) that uses
 this Phase 3 protocol as methods — plan in
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
 Live `pass@1` / `pass@end` and layer rates should freeze by early January (prefer
-Halo once A13 is green; workstation is fine if the box slips); all paper numbers
-freeze by late February.
+Halo once A13 is green; **downstairs** if the box slips; workstation last);
+all paper numbers freeze by late February.
 
 ## Phase 4 — Halo host profile (planned ~Black Friday Nov 2026)
 
