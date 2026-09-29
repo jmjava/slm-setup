@@ -10,17 +10,35 @@ LAN addresses, or SKUs here.
 | --- | --- | --- |
 | 1 — inference host | Done on the workstation lab | Ollama + starter tags on a private GPU |
 | 2 — MCP bridge | Done | `local-coding-slm` stdio tools; Cursor / Copilot / Claude adapters |
-| 3 — measure | Protocol + expanded corpus + harder multi-file suite + MCP apply gate + CI; live rates still informal | Layered scoring; scripted premium routing/review; no auto-classifier yet |
-| T12 Part A second NVIDIA host | Blocked on host power | WSL GPU via SSH; see [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
-| T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
+| 3 — measure | Protocol + corpus + apply gate + CI; **live rates still need a stable remote GPU** | Layered scoring; next live rows go through downstairs |
+| **T12 Part A downstairs** | **Next hardware work** (early Nov 2026) | Second PC / WSL NVIDIA via SSH — was blocked on host power; [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
+| T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; do not block on downstairs; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
 
-Finish Phase 3 measurement (layered live rates on the committed corpus)
-and the existing second-host checks before treating Halo as the next lab.
+**Order (do not invert):** finish Phase 3 live measurement on **downstairs** (T12 Part A) **before** treating Halo as the next lab.
 
-## Phase 4 — Halo host profile (future)
+1. **First work — downstairs:** power on, WSL Ollama, `ssh -L` from the IDE workstation, A4-class check, scrubbed live harness / `run_eval.py --live` rows.
+2. **Then — keep measuring** Part A on downstairs through November.
+3. **Later — Halo / 395** (~Black Friday): bring-up and A13 only after downstairs is a known path (on, or explicitly abandoned).
 
-Use an AMD Ryzen AI Halo-class box as **another private Ollama host**. The
-MCP server stays on the workstation. Premium agents still plan and review.
+Public-safe downstairs notes:
+[examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md).
+
+**Halo / Ryzen AI Max+ 395:** planned acquire around **Black Friday week Nov 2026**.
+Claim Phase 4 only after A13. Until then Phase 3 live rates stay on **downstairs**, not workstation-local Ollama and not Halo. Paper track:
+[embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
+
+Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**). Live
+`pass@1` / `pass@end` freeze by early January (**downstairs** default; Halo only if
+A13 green); all paper numbers freeze by late February.
+
+## Phase 4 — Halo host profile (planned ~Black Friday Nov 2026)
+
+Use an AMD Ryzen AI Max+ 395 / Halo-class box as **another private Ollama host**.
+Target arrival: **around Black Friday week November 2026**. The MCP server stays
+on the workstation. Premium agents still plan and review.
+
+Until the box exists and A13 passes, do not claim this phase — keep Phase 3 live
+rates on the **downstairs** host (T12 Part A). Do not skip downstairs to chase Halo.
 
 This is **not** a second product. It is the same bridge with a different
 `OLLAMA_BASE_URL` (or the same loopback URL behind `ssh -L`).

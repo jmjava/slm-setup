@@ -249,9 +249,15 @@ It still may not claim:
 
 ## Paper mapping
 
-This protocol is the methods object for a short workshop paper on
+This protocol is the methods object for a short workshop / preprint paper on
 **local SLMs as MCP tools**, not as a replacement model provider.
 Related MCP-agent benchmarks score tool choice or final answers on
 hosted servers. The question here is narrower: when a premium agent
 delegates a bounded coding edit to a private 9B–24B model, which
 failure layer fires, and how much of that layer is the prompt contract?
+
+**Nov 2026 – Mar 2027 ship plan** (venue, calendar, citations, claim freeze; DOI by
+**31 Mar 2027**) lives in the model program repo:
+[embabel-slm/docs/paper-calendar-2026.md](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
+Zenodo is the primary DOI path; live rates for that preprint still come from
+this repo’s harness and dated notes.
