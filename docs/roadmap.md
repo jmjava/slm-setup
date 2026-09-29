@@ -17,16 +17,26 @@ LAN addresses, or SKUs here.
 Finish Phase 3 measurement (layered live rates on the committed corpus)
 and the existing second-host checks before treating Halo as the next lab.
 
+**Halo / Ryzen AI Max+ 395:** planned acquire around **Black Friday week Nov 2026**.
+Until then keep live measurement on the workstation Ollama host. Claim Phase 4
+only after the box is up (A13). Paper track coordinates this in
+[embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
+
 Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**) that uses
 this Phase 3 protocol as methods — plan in
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
-Live `pass@1` / `pass@end` and layer rates should freeze by early January; all
-paper numbers freeze by late February.
+Live `pass@1` / `pass@end` and layer rates should freeze by early January (prefer
+Halo once A13 is green; workstation is fine if the box slips); all paper numbers
+freeze by late February.
 
-## Phase 4 — Halo host profile (future)
+## Phase 4 — Halo host profile (planned ~Black Friday Nov 2026)
 
-Use an AMD Ryzen AI Halo-class box as **another private Ollama host**. The
-MCP server stays on the workstation. Premium agents still plan and review.
+Use an AMD Ryzen AI Max+ 395 / Halo-class box as **another private Ollama host**.
+Target arrival: **around Black Friday week November 2026**. The MCP server stays
+on the workstation. Premium agents still plan and review.
+
+Until the box exists and A13 passes, do not claim this phase — keep Phase 3 live
+rates on the workstation host.
 
 This is **not** a second product. It is the same bridge with a different
 `OLLAMA_BASE_URL` (or the same loopback URL behind `ssh -L`).
