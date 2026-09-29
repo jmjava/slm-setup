@@ -17,10 +17,11 @@ LAN addresses, or SKUs here.
 Finish Phase 3 measurement (layered live rates on the committed corpus)
 and the existing second-host checks before treating Halo as the next lab.
 
-Paper track: Nov–Dec 2026 Zenodo preprint that uses this Phase 3 protocol as
-methods — plan in
+Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**) that uses
+this Phase 3 protocol as methods — plan in
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
-Live `pass@1` / `pass@end` and layer rates must be frozen before that DOI.
+Live `pass@1` / `pass@end` and layer rates should freeze by early January; all
+paper numbers freeze by late February.
 
 ## Phase 4 — Halo host profile (future)
 
