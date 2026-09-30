@@ -8,23 +8,24 @@ LAN addresses, or SKUs here.
 
 | Phase | Status | What it is |
 | --- | --- | --- |
-| 1 — inference host | Done on the workstation lab | Ollama + starter tags on a private GPU |
-| 2 — MCP bridge | Done | `local-coding-slm` stdio tools; Cursor / Copilot / Claude adapters |
-| 3 — measure | Protocol + corpus + apply gate + CI; **live rates still need a stable remote GPU** | Layered scoring; next live rows go through downstairs |
+| 1 — inference host | Downstairs NVIDIA path is the live target; IDE box is MCP-only | Ollama on downstairs WSL GPUs; starter tags; no paper inference on the IDE machine |
+| 2 — MCP bridge | Done | `local-coding-slm` stdio tools on the IDE workstation; Cursor / Copilot / Claude adapters |
+| 3 — measure | Protocol + corpus + apply gate + CI; **live rates need downstairs powered** | Layered scoring; next live rows go through downstairs |
 | **T12 Part A downstairs** | **Next hardware work** (early Nov 2026) | Second PC / WSL NVIDIA via SSH — was blocked on host power; [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
 | T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; do not block on downstairs; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
 
 **Order (do not invert):** finish Phase 3 live measurement on **downstairs** (T12 Part A) **before** treating Halo as the next lab.
 
-1. **First work — downstairs:** power on, WSL Ollama, `ssh -L` from the IDE workstation, A4-class check, scrubbed live harness / `run_eval.py --live` rows.
+1. **First work — downstairs:** power on, WSL Ollama on the usable NVIDIA GPUs, `ssh -L` from the IDE workstation, A4-class check, scrubbed live harness / `run_eval.py --live` rows.
 2. **Then — keep measuring** Part A on downstairs through November.
-3. **Later — Halo / 395** (~Black Friday): bring-up and A13 only after downstairs is a known path (on, or explicitly abandoned).
+3. **Later — Halo / 395** (~Black Friday): bring-up and A13 only after downstairs is measuring.
 
 Public-safe downstairs notes:
 [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md).
 
 **Halo / Ryzen AI Max+ 395:** planned acquire around **Black Friday week Nov 2026**.
-Claim Phase 4 only after A13. Until then Phase 3 live rates stay on **downstairs**, not workstation-local Ollama and not Halo. Paper track:
+Claim Phase 4 only after A13. Until then Phase 3 live rates stay on **downstairs**.
+The IDE workstation runs MCP only — **do not** treat local Ollama there as a paper or Phase 3 path. Paper track:
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
 
 Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**). Live
