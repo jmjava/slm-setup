@@ -28,6 +28,12 @@ class QualityGateTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn("test-check-complexity: PASS", proc.stdout)
 
+    def test_hotspot_gate_proves_quiet_complex_passes(self) -> None:
+        script = ROOT / "scripts" / "test-check-hotspot.sh"
+        proc = subprocess.run(["bash", str(script)], cwd=ROOT, capture_output=True, text=True, check=False)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("test-check-hotspot: PASS", proc.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
