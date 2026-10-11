@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Score the harder multi-file refactor corpus.
 
-Default path is offline fixtures (CI / no GPU). ``--live`` calls real
-``local_refactor`` through stdio MCP and skips with exit 0 when Ollama
-is down. ``--require-live`` is the same path but exits 2 on skip and
-writes ``eval-runs/live-status.json``. A skip is not a model-quality pass.
+Default path is offline fixtures (CI / no GPU). ``--live`` and
+``--require-live`` call real ``local_refactor`` through stdio MCP.
+When Ollama is down they write ``eval-runs/live-status.json`` and exit 2.
+A skipped live check is not success.
 """
 
 from __future__ import annotations
