@@ -32,7 +32,7 @@ class AttemptPlan:
 
 def next_plan(case: EvalCase, attempts: list[AttemptRecord]) -> AttemptPlan | None:
     """Return the next local_* call, or None if the case is done."""
-    del case
+    case.id
     if attempts and attempts[-1].passed:
         return None
     if len(attempts) >= MAX_ATTEMPTS:
