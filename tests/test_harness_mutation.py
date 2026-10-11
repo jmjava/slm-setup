@@ -216,17 +216,20 @@ class ExitAndSummaryTests(unittest.TestCase):
                 review_reviewer="premium",
                 local_passed=True,
             ),
+            _job(job="blank", apply_source="", applied=False),
         ]
         self.assertEqual(
             format_orchestrated(results),
             "\n".join(
                 [
-                    "jobs=2 applied=2 delegated=1",
+                    "jobs=3 applied=2 delegated=1",
                     "pass@end=1.00 delegated_jobs=1",
                     "  keep_one: delegated=False route=incident_debug "
                     "outcome=kept_on_premium source=premium models=-",
                     "  do_one: delegated=True route=mechanical "
                     "outcome=applied_local source=local models=['fast']",
+                    "  blank: delegated=False route=incident_debug "
+                    "outcome=kept_on_premium source=- models=-",
                 ]
             ),
         )
@@ -294,6 +297,9 @@ class AttemptTests(unittest.TestCase):
         )
         self.assertEqual(len(attempts), 2)
         self.assertEqual(attempts[0].record.attempt, 1)
+        self.assertEqual(attempts[0].record.job, "whitespace_extract#1")
+        self.assertEqual(attempts[0].record.backend, "stub")
+        self.assertEqual(attempts[0].record.profile, "golden")
         self.assertFalse(attempts[0].record.passed)
         self.assertEqual(attempts[0].record.first_failure, "format")
         self.assertEqual(attempts[0].record.model, "fast")
@@ -403,6 +409,31 @@ class OrchestratedHarnessTests(unittest.TestCase):
         self.assertEqual(result.route_reason, "secrets_file")
         self.assertEqual(result.applied_text, "hold")
 
+    def test_delegated_attempt_keeps_job_backend_and_profile(self) -> None:
+        case = CASES_BY_ID["whitespace_extract"]
+        session = _Session([_golden_tool()])
+        job = OrchestrationJob(
+            id="do_one",
+            signals=mechanical_signals(),
+            eval_case=case,
+            review=accept(),
+        )
+        seen: list[tuple[str, str, str]] = []
+        real = harness._run_local_mcp
+
+        async def _spy(session, case, *, job, backend, profile):
+            seen.append((job, backend, profile))
+            return await real(session, case, job=job, backend=backend, profile=profile)
+
+        with patch.object(harness, "_run_local_mcp", _spy):
+            result = asyncio.run(
+                harness._run_orchestrated_job(
+                    session, job, backend="stub", profile="golden"
+                )
+            )
+        self.assertEqual(seen, [("do_one", "stub", "golden")])
+        self.assertEqual(result.outcome, "applied_local")
+
 
 class CampaignTests(unittest.TestCase):
     def _cases(self) -> tuple[object, object]:
@@ -440,6 +471,8 @@ class CampaignTests(unittest.TestCase):
             ],
         )
         self.assertTrue(all(row.passed for row in rows))
+        self.assertEqual(rows[0].backend, "stub")
+        self.assertEqual(rows[0].profile, "golden")
         self.assertEqual(
             captured,
             [("stub", "golden", 1.5, 4.5, "http://127.0.0.1:9")],
@@ -486,6 +519,8 @@ class CampaignTests(unittest.TestCase):
             with patch.object(harness, "_with_session", _with_session):
                 rows = asyncio.run(harness.run_campaign(backend="stub", profile="golden"))
         self.assertEqual([row.job for row in rows], [f"{first.id}#1"])
+        self.assertEqual(rows[0].backend, "stub")
+        self.assertEqual(rows[0].profile, "golden")
         self.assertEqual(captured, [(8.0, 25.0, None)])
 
     def test_orchestrated_campaign_filters_jobs(self) -> None:
@@ -505,7 +540,7 @@ class CampaignTests(unittest.TestCase):
         captured: list[tuple[object, ...]] = []
 
         async def _with_session(*, backend, profile, fast_ms, strong_ms, base_url, body):
-            captured.append((fast_ms, strong_ms, base_url, profile))
+            captured.append((backend, fast_ms, strong_ms, base_url, profile))
             await body(session, backend, profile)
 
         with patch.object(harness, "MCP_JOBS", (keep, delegated)):
@@ -542,7 +577,7 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(both[1].outcome, "applied_local")
         self.assertEqual([item.job for item in only_keep], ["keep_one"])
         self.assertEqual(session.calls[0][0], case.tool)
-        self.assertEqual(captured[0], (3.0, 9.0, None, "golden"))
+        self.assertEqual(captured[0], ("stub", 3.0, 9.0, None, "golden"))
         self.assertEqual(str(missing.exception), "no orchestration jobs selected")
 
     def test_orchestrated_defaults_timing_and_forwards_base_url(self) -> None:
@@ -554,7 +589,7 @@ class CampaignTests(unittest.TestCase):
         captured: list[tuple[object, ...]] = []
 
         async def _with_session(*, backend, profile, fast_ms, strong_ms, base_url, body):
-            captured.append((fast_ms, strong_ms, base_url))
+            captured.append((backend, fast_ms, strong_ms, base_url))
             await body(_Session([]), backend, profile)
 
         with patch.object(harness, "MCP_JOBS", (keep,)):
@@ -567,7 +602,7 @@ class CampaignTests(unittest.TestCase):
                     )
                 )
         self.assertEqual([item.job for item in rows], ["keep_one"])
-        self.assertEqual(captured, [(8.0, 25.0, "http://127.0.0.1:8")])
+        self.assertEqual(captured, [("stub", 8.0, 25.0, "http://127.0.0.1:8")])
 
 
 class SessionBootstrapTests(unittest.TestCase):
