@@ -14,4 +14,7 @@ if ! grep -E '\([1-9][0-9]* files mutated' "$run_log" >/dev/null; then
   exit 1
 fi
 mutmut export-cicd-stats
-python3 scripts/check-mutmut-harness.py
+if ! python3 scripts/check-mutmut-harness.py; then
+  mutmut results || true
+  exit 1
+fi

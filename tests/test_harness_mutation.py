@@ -112,6 +112,7 @@ class ExitAndSummaryTests(unittest.TestCase):
         self.assertEqual(harness_exit_code(1.0, 1), 0)
         self.assertEqual(harness_exit_code(0.5, 1, min_pass_end=0.5), 0)
         self.assertEqual(harness_exit_code(0.49, 1, min_pass_end=0.5), 1)
+        self.assertEqual(harness_exit_code(0.5, 4), 0)
         self.assertIsInstance(harness_exit_code(1.0, 1), int)
 
     def test_campaign_pass_end_counts_cases(self) -> None:
@@ -354,8 +355,11 @@ class OrchestratedHarnessTests(unittest.TestCase):
         self.assertEqual(review_payload["model"], "fast")
         self.assertEqual(review_payload["language"], case.language)
         self.assertEqual(review_payload["files"], list(case.files))
-        self.assertIn("First-pass review only", str(review_payload["task"]))
-        self.assertIn(case.task, str(review_payload["task"]))
+        self.assertEqual(
+            review_payload["task"],
+            "First-pass review only. Flag obvious null, auth, secret, and "
+            "error-handling gaps. Do not rewrite.\n\nOriginal task:\n" + case.task,
+        )
         self.assertEqual(result.local_review_notes, "alphabeta")
         self.assertTrue(result.delegated)
         self.assertTrue(result.local_passed)
@@ -378,6 +382,26 @@ class OrchestratedHarnessTests(unittest.TestCase):
         self.assertEqual([name for name, _payload in session.calls], [case.tool])
         self.assertEqual(result.local_review_notes, "kept-notes")
         self.assertTrue(result.local_passed)
+
+    def test_secret_file_stays_on_premium(self) -> None:
+        case = replace(
+            CASES_BY_ID["whitespace_extract"],
+            files=({"path": ".env", "content": "A=1"},),
+        )
+        session = _Session([])
+        job = OrchestrationJob(
+            id="secret",
+            signals=mechanical_signals(),
+            eval_case=case,
+            premium_keep_text="hold",
+        )
+        result = asyncio.run(
+            harness._run_orchestrated_job(session, job, backend="stub", profile="golden")
+        )
+        self.assertEqual(session.calls, [])
+        self.assertFalse(result.delegated)
+        self.assertEqual(result.route_reason, "secrets_file")
+        self.assertEqual(result.applied_text, "hold")
 
 
 class CampaignTests(unittest.TestCase):
@@ -449,6 +473,21 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(str(missing.exception), "no cases selected")
         self.assertEqual(str(repeat.exception), "repeat must be >= 1")
 
+    def test_campaign_defaults_one_repeat_and_stock_timing(self) -> None:
+        first, _second = self._cases()
+        session = _Session([_golden_tool()])
+        captured: list[tuple[object, ...]] = []
+
+        async def _with_session(*, backend, profile, fast_ms, strong_ms, base_url, body):
+            captured.append((fast_ms, strong_ms, base_url))
+            await body(session, backend, profile)
+
+        with patch.object(harness, "CASES", (first,)):
+            with patch.object(harness, "_with_session", _with_session):
+                rows = asyncio.run(harness.run_campaign(backend="stub", profile="golden"))
+        self.assertEqual([row.job for row in rows], [f"{first.id}#1"])
+        self.assertEqual(captured, [(8.0, 25.0, None)])
+
     def test_orchestrated_campaign_filters_jobs(self) -> None:
         case = CASES_BY_ID["whitespace_extract"]
         keep = OrchestrationJob(
@@ -506,6 +545,30 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual(captured[0], (3.0, 9.0, None, "golden"))
         self.assertEqual(str(missing.exception), "no orchestration jobs selected")
 
+    def test_orchestrated_defaults_timing_and_forwards_base_url(self) -> None:
+        keep = OrchestrationJob(
+            id="keep_one",
+            signals=mechanical_signals(incident_debug=True),
+            premium_keep_text="stay",
+        )
+        captured: list[tuple[object, ...]] = []
+
+        async def _with_session(*, backend, profile, fast_ms, strong_ms, base_url, body):
+            captured.append((fast_ms, strong_ms, base_url))
+            await body(_Session([]), backend, profile)
+
+        with patch.object(harness, "MCP_JOBS", (keep,)):
+            with patch.object(harness, "_with_session", _with_session):
+                rows = asyncio.run(
+                    harness.run_orchestrated_campaign(
+                        backend="stub",
+                        profile="golden",
+                        base_url="http://127.0.0.1:8",
+                    )
+                )
+        self.assertEqual([item.job for item in rows], ["keep_one"])
+        self.assertEqual(captured, [(8.0, 25.0, "http://127.0.0.1:8")])
+
 
 class SessionBootstrapTests(unittest.TestCase):
     def test_stub_backend_sets_loopback_and_closes_stub(self) -> None:
@@ -519,43 +582,51 @@ class SessionBootstrapTests(unittest.TestCase):
             return stub
 
         captured: dict[str, object] = {}
-        seen: list[tuple[object, str, str, bool]] = []
+        seen: list[tuple[object, object, str, str, bool]] = []
 
         def _stdio(params: object) -> object:
             captured["params"] = params
             return _AsyncCM(("R", "W"))
 
         async def _body(session: _ReadySession, backend: str, profile: str) -> None:
-            seen.append((session.read, backend, profile, session.ready))
+            seen.append((session.read, session.write, backend, profile, session.ready))
 
-        with patch("local_coding_slm.eval.stub_ollama.StubOllama", _factory):
-            with patch("mcp.client.stdio.stdio_client", _stdio):
-                with patch("mcp.ClientSession", _ReadySession):
-                    with patch("mcp.StdioServerParameters", _Params):
-                        asyncio.run(
-                            harness._with_session(
-                                backend="stub",
-                                profile="observed",
-                                fast_ms=1.5,
-                                strong_ms=4.5,
-                                base_url=None,
-                                body=_body,
+        with patch.dict("os.environ", {"PYTHONPATH": "py-sentinel"}):
+            with patch("local_coding_slm.eval.stub_ollama.StubOllama", _factory):
+                with patch("mcp.client.stdio.stdio_client", _stdio):
+                    with patch("mcp.ClientSession", _ReadySession):
+                        with patch("mcp.StdioServerParameters", _Params):
+                            asyncio.run(
+                                harness._with_session(
+                                    backend="stub",
+                                    profile="observed",
+                                    fast_ms=1.5,
+                                    strong_ms=4.5,
+                                    base_url=None,
+                                    body=_body,
+                                )
                             )
-                        )
-        self.assertEqual(seen, [("R", "stub", "observed", True)])
+        self.assertEqual(seen, [("R", "W", "stub", "observed", True)])
         self.assertEqual(made[0][0]["profile"], "observed")
         self.assertEqual(made[0][0]["fast_ms"], 1.5)
         self.assertEqual(made[0][0]["strong_ms"], 4.5)
         made[0][1].__exit__.assert_called_once_with(None, None, None)
         params = captured["params"]
         assert isinstance(params, _Params)
+        os = __import__("os")
+        root = __import__("pathlib").Path(harness.__file__).resolve().parents[3]
         self.assertEqual(params.command, __import__("sys").executable)
+        self.assertEqual(harness.ROOT, root)
+        self.assertEqual(params.cwd, str(root))
         self.assertEqual(
             params.args,
-            [str(harness.ROOT / "src" / "local_coding_slm" / "server.py")],
+            [str(root / "src" / "local_coding_slm" / "server.py")],
         )
-        self.assertEqual(params.cwd, str(harness.ROOT))
-        self.assertIn(str(harness.ROOT / "src"), params.env["PYTHONPATH"])
+        self.assertEqual(
+            params.env["PYTHONPATH"],
+            str(root / "src") + os.pathsep + "py-sentinel",
+        )
+        self.assertIsNot(params.env, os.environ)
         self.assertEqual(params.env["OLLAMA_BASE_URL"], "http://127.0.0.1:9")
 
     def test_live_backend_renames_profile_and_skips_stub(self) -> None:
@@ -599,7 +670,11 @@ class SessionBootstrapTests(unittest.TestCase):
         async def _body(_session: object, _backend: str, profile: str) -> None:
             self.assertEqual(profile, "live")
 
-        cleaned = {key: value for key, value in __import__("os").environ.items() if key != "OLLAMA_BASE_URL"}
+        cleaned = {
+            key: value
+            for key, value in __import__("os").environ.items()
+            if key not in {"OLLAMA_BASE_URL", "PYTHONPATH"}
+        }
         with patch.dict("os.environ", cleaned, clear=True):
             with patch("mcp.client.stdio.stdio_client", _stdio):
                 with patch("mcp.ClientSession", _ReadySession):
@@ -614,7 +689,13 @@ class SessionBootstrapTests(unittest.TestCase):
                                 body=_body,
                             )
                         )
+        root = __import__("pathlib").Path(harness.__file__).resolve().parents[3]
+        self.assertEqual(harness.ROOT, root)
         self.assertNotIn("OLLAMA_BASE_URL", captured["params"].env)
+        self.assertEqual(
+            captured["params"].env["PYTHONPATH"],
+            str(root / "src") + __import__("os").pathsep,
+        )
 
     def test_unknown_backend_raises_before_stdio(self) -> None:
         stdio = MagicMock()

@@ -120,3 +120,4 @@ class MutationConfigTests(unittest.TestCase):
         self.assertIn("mutmut run", script)
         self.assertIn("harness.py was not mutated", script)
         self.assertIn("check-mutmut-harness.py", script)
+        self.assertIn("mutmut results", script)
