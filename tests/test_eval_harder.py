@@ -93,7 +93,7 @@ class HarderMultifileCorpusTests(unittest.TestCase):
             text=True,
             check=False,
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
         self.assertIn("SKIP live", proc.stdout)
 
     def test_require_live_exits_2_when_ollama_is_down(self) -> None:

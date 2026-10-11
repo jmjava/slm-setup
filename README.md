@@ -121,9 +121,9 @@ connected through SSH local forwarding.
    return + facade, keyword-parameter rename, payload-key rename,
    env-var rename) are
    offline by default.
-   `--live` skips with exit 0 when Ollama is down; that skip is not a
-   quality pass. `--require-live` writes `eval-runs/live-status.json`
-   `{"skipped": true}` and exits 2 so CI can fail closed:
+   `--live` and `--require-live` write `eval-runs/live-status.json`
+   `{"skipped": true}` and exit 2 when Ollama is down. A skipped live
+   check is not success:
 
    ```bash
    .venv/bin/python scripts/prove_multifile_refactor.py

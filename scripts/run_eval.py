@@ -91,9 +91,7 @@ def _run_fixtures(case_id: str | None, suite: str) -> int:
     return failed
 
 
-async def _run_live(
-    case_id: str | None, model: str, suite: str, *, require_live: bool
-) -> int:
+async def _run_live(case_id: str | None, model: str, suite: str) -> int:
     from local_coding_slm.ollama_client import OllamaSettings, is_reachable
     from local_coding_slm.server import _load_dotenv
 
@@ -103,9 +101,9 @@ async def _run_live(
         _write_live_status(skipped=True)
         print(
             f"SKIP live: Ollama unreachable at {settings.host_label()} "
-            "(offline fixtures still pass; this is not a model-quality fail)"
+            "(skipped live check is not success)"
         )
-        return 2 if require_live else 0
+        return 2
     _write_live_status(skipped=False)
 
     from mcp import ClientSession, StdioServerParameters
@@ -160,7 +158,7 @@ def main() -> None:
     parser.add_argument(
         "--require-live",
         action="store_true",
-        help="Same as --live, but exit 2 when Ollama is down instead of skip-0.",
+        help="Same as --live. A skipped live check exits 2.",
     )
     parser.add_argument("--model", choices=("fast", "strong"), default="fast")
     parser.add_argument("--case", dest="case_id", default=None)
@@ -178,7 +176,6 @@ def main() -> None:
                     args.case_id,
                     args.model,
                     args.suite,
-                    require_live=args.require_live,
                 )
             )
         )
