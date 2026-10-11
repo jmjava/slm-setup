@@ -604,6 +604,33 @@ class CampaignTests(unittest.TestCase):
         self.assertEqual([item.job for item in rows], ["keep_one"])
         self.assertEqual(captured, [("stub", 8.0, 25.0, "http://127.0.0.1:8")])
 
+    def test_orchestrated_campaign_forwards_backend_and_profile(self) -> None:
+        keep = OrchestrationJob(
+            id="keep_one",
+            signals=mechanical_signals(incident_debug=True),
+            premium_keep_text="stay",
+        )
+        seen: list[tuple[object, object, object]] = []
+
+        async def _with_session(*, backend, profile, fast_ms, strong_ms, base_url, body):
+            await body("session-token", backend, profile)
+
+        async def _run(session, job, *, backend, profile):
+            seen.append((session, backend, profile))
+            return _job(job=job.id)
+
+        with patch.object(harness, "MCP_JOBS", (keep,)):
+            with patch.object(harness, "_with_session", _with_session):
+                with patch.object(harness, "_run_orchestrated_job", _run):
+                    rows = asyncio.run(
+                        harness.run_orchestrated_campaign(
+                            backend="stub",
+                            profile="golden",
+                        )
+                    )
+        self.assertEqual(seen, [("session-token", "stub", "golden")])
+        self.assertEqual([item.job for item in rows], ["keep_one"])
+
 
 class SessionBootstrapTests(unittest.TestCase):
     def test_stub_backend_sets_loopback_and_closes_stub(self) -> None:
