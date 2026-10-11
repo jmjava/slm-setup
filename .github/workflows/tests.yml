@@ -46,3 +46,16 @@ jobs:
         run: python scripts/run_harness.py --backend stub --profile observed --fast-ms 1 --strong-ms 1
       - name: Deployment safety
         run: python scripts/check_deployment_safety.py --skip-listen
+
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[dev]' 'mutmut==3.8.0' 'pytest>=8,<9'
+      - name: Mutation harness.py
+        run: bash scripts/check-mutmut-harness.sh

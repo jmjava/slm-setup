@@ -24,3 +24,12 @@ src = ["src"]
 
 [tool.ruff.lint]
 select = ["F401", "F811"]
+
+# mutmut on the harness module only. Survivors fail the CI job.
+# There is no survived ceiling to raise.
+[tool.mutmut]
+source_paths = ["src"]
+only_mutate = ["src/local_coding_slm/eval/harness.py"]
+pytest_add_cli_args_test_selection = ["tests/test_harness_mutation.py"]
+use_git_change_detection = false
+mutate_only_covered_lines = true
