@@ -55,6 +55,16 @@ class InspectPayloadTests(unittest.TestCase):
                 reason = inspect_payload([{"path": name, "content": "not-a-real-key"}])
                 self.assertEqual(reason, "secrets_file")
 
+    def test_temporary_aws_access_key_id_refused(self) -> None:
+        """STS access key ids use ASIA, not only the long-term AKIA prefix."""
+        reason = inspect_payload(
+            [{"path": "notes.py", "content": "ASIAIOSFODNN7EXAMPLE"}]
+        )
+        self.assertEqual(reason, "secret_content")
+        self.assertIsNone(
+            inspect_payload([{"path": "notes.py", "content": "deploy in ASIA\n"}])
+        )
+
     def test_clean_snippet_ok(self) -> None:
         self.assertIsNone(
             inspect_payload([{"path": "add.py", "content": "def add(a, b): return a + b\n"}])
