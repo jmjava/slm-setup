@@ -48,7 +48,7 @@ _SECRET_BASENAMES = frozenset(
 )
 _TOKEN_RE = re.compile(r"(?<![A-Za-z0-9_])(?:ghp_|github_pat_|sk-)")
 _AWS_SECRET_ASSIGN_RE = re.compile(r"aws_secret_access_key\s*=")
-_AWS_ACCESS_KEY_ID_RE = re.compile(r"\bAKIA[0-9A-Z]*")
+_AWS_ACCESS_KEY_ID_RE = re.compile(r"\b(?:AKIA[0-9A-Z]*|ASIA[0-9A-Z]{16})")
 _JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*")
 
 
