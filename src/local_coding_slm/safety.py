@@ -268,18 +268,30 @@ def classify_local_listeners(
     )
 
 
+def _leading_zero_ipv4(match: str) -> bool:
+    """True when a dotted quad uses a leading zero, which ipaddress rejects."""
+    parts = match.split(".")
+    if len(parts) != 4 or not all(part.isdigit() for part in parts):
+        return False
+    return any(len(part) > 1 and part.startswith("0") for part in parts)
+
+
+def _is_committed_ip_hit(match: str) -> bool:
+    try:
+        addr = ipaddress.ip_address(match)
+    except ValueError:
+        return _leading_zero_ipv4(match)
+    if match in PLACEHOLDER_IPV4 or addr.is_loopback or addr.is_unspecified:
+        return False
+    return bool(addr.is_private or addr.is_global)
+
+
 def classify_tracked_ipv4(paths_and_text: Iterable[tuple[str, str]]) -> CheckResult:
     """Fail committed files that contain non-placeholder private or public IPs."""
     hits: list[str] = []
     for path, text in paths_and_text:
         for match in IPV4_RE.findall(text):
-            try:
-                addr = ipaddress.ip_address(match)
-            except ValueError:
-                continue
-            if match in PLACEHOLDER_IPV4 or addr.is_loopback or addr.is_unspecified:
-                continue
-            if addr.is_private or addr.is_global:
+            if _is_committed_ip_hit(match):
                 hits.append(f"{path}:{match}")
     if hits:
         return CheckResult(

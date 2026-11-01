@@ -171,6 +171,14 @@ class TestHygiene(unittest.TestCase):
         result = classify_tracked_ipv4([("README.md", "use 10.0.0.65")])
         self.assertEqual(result.status, "fail")
 
+    def test_leading_zero_ipv4_fails(self) -> None:
+        """A dotted quad Python rejects is still an address if an octet has a leading zero."""
+        for text in ("010.010.010.010", "008.008.008.008"):
+            with self.subTest(text=text):
+                result = classify_tracked_ipv4([("README.md", f"host {text}")])
+                self.assertEqual(result.status, "fail")
+                self.assertIn(text, result.message)
+
     def test_committed_workflow_yaml_ip_fails(self) -> None:
         """GitHub workflow YAML is committed text, so an address there must fail."""
         import subprocess
