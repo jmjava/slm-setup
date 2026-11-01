@@ -159,6 +159,15 @@ class TestLocalListen(unittest.TestCase):
         result = classify_local_listeners([])
         self.assertEqual(result.status, "warn")
 
+    def test_unparsed_listen_address_fails(self) -> None:
+        """A LISTEN row whose address cannot be parsed is not 'Ollama is down'."""
+        text = (
+            "  sl  local_address rem_address   st\n"
+            "   0: GGGGGGGG:2CAA 00000000:0000 0A 00000000:00000000\n"
+        )
+        result = classify_local_listeners(parse_proc_net_listen_ports(text))
+        self.assertEqual(result.status, "fail", result.message)
+
 
 class TestHygiene(unittest.TestCase):
     def test_placeholder_ips_pass(self) -> None:

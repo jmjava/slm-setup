@@ -218,9 +218,8 @@ def parse_proc_net_listen_ports(text: str) -> list[tuple[str, int]]:
             port = int(port_hex, 16)
         except ValueError:
             continue
-        ip = _hex_ip(addr_hex)
-        if ip is not None:
-            found.append((ip, port))
+        ip = _hex_ip(addr_hex) or "unparsed"
+        found.append((ip, port))
     return found
 
 
