@@ -79,6 +79,18 @@ def _refuse_failed_base_url(url: str) -> None:
         raise OllamaError(result.message)
 
 
+class _RefuseRedirect(urllib.request.HTTPRedirectHandler):
+    """A 302 on POST is fetched from the Location host and accepted as Ollama."""
+
+    def redirect_request(self, _req, _fp, _code, _msg, _headers, newurl):
+        raise OllamaError(f"Ollama redirected the request to {newurl}")
+
+
+def _open(req: urllib.request.Request, timeout_s: int):
+    opener = urllib.request.build_opener(_RefuseRedirect())
+    return opener.open(req, timeout=timeout_s)
+
+
 def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, Any]:
     _refuse_failed_base_url(url)
     data = json.dumps(payload).encode("utf-8")
@@ -89,7 +101,7 @@ def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, A
         method="POST",
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        with _open(req, timeout_s) as resp:
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:400]
@@ -111,7 +123,7 @@ def _get_json(url: str, timeout_s: int) -> dict[str, Any]:
     _refuse_failed_base_url(url)
     req = urllib.request.Request(url, method="GET")
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        with _open(req, timeout_s) as resp:
             body = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:400]

@@ -147,7 +147,7 @@ class ClientTests(unittest.TestCase):
             ]
         }
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp(payload),
         ):
             names = list_model_names(self.settings)
@@ -156,7 +156,7 @@ class ClientTests(unittest.TestCase):
     def test_status_report_marks_present_models(self) -> None:
         payload = {"models": [{"name": "qwen3.5:9b"}]}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp(payload),
         ):
             report = status_report(self.settings)
@@ -167,7 +167,7 @@ class ClientTests(unittest.TestCase):
     def test_chat_returns_message_content(self) -> None:
         payload = {"message": {"content": "def ping(): return True"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp(payload),
         ) as mocked:
             text = chat("sys", "write ping", model="fast", settings=self.settings)
@@ -180,7 +180,7 @@ class ClientTests(unittest.TestCase):
     def test_chat_num_predict_equals_requested(self) -> None:
         payload = {"message": {"content": "ok"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp(payload),
         ) as mocked:
             chat(
@@ -196,7 +196,7 @@ class ClientTests(unittest.TestCase):
 
     def test_chat_max_tokens_above_cap_raises_without_post(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
         ) as mocked:
             with self.assertRaises(OllamaError) as raised:
                 chat(
@@ -217,7 +217,7 @@ class ClientTests(unittest.TestCase):
             num_ctx=4096,
         )
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
         ) as mocked:
             with self.assertRaises(OllamaError) as raised:
                 chat("sys", "write ping", model="fast", settings=settings)
@@ -241,7 +241,7 @@ class ClientTests(unittest.TestCase):
                     num_ctx=4096,
                 )
                 with patch(
-                    "local_coding_slm.ollama_client.urllib.request.urlopen",
+                    "local_coding_slm.ollama_client._open",
                 ) as mocked:
                     with self.assertRaises(OllamaError):
                         chat("sys", "write ping", model="fast", settings=settings)
@@ -251,7 +251,7 @@ class ClientTests(unittest.TestCase):
         """Leftover #8: default clamp is options.num_predict, not payload.MAX_TOKENS."""
         payload = {"message": {"content": "ok"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp(payload),
         ) as mocked:
             chat("sys", "write ping", model="fast", settings=self.settings)
@@ -263,7 +263,7 @@ class ClientTests(unittest.TestCase):
         """Leftover #8: max(1, requested) must show up in the POST body."""
         payload = {"message": {"content": "ok"}}
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp(payload),
         ) as mocked:
             chat(
@@ -281,7 +281,7 @@ class ClientTests(unittest.TestCase):
     def test_chat_max_tokens_9000_does_not_post_clamped_body(self) -> None:
         """Leftover #8: inspect_payload(9000) is not enough; client must not POST 4096."""
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
         ) as mocked:
             with self.assertRaises(OllamaError) as raised:
                 chat(
@@ -296,7 +296,7 @@ class ClientTests(unittest.TestCase):
 
     def test_unreachable_becomes_ollama_error(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             side_effect=URLError("down"),
         ):
             with self.assertRaises(OllamaError):
@@ -304,17 +304,69 @@ class ClientTests(unittest.TestCase):
 
     def test_is_reachable_true_on_tags(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             return_value=_FakeResp({"models": []}),
         ):
             self.assertTrue(is_reachable(self.settings))
 
     def test_is_reachable_false_when_down(self) -> None:
         with patch(
-            "local_coding_slm.ollama_client.urllib.request.urlopen",
+            "local_coding_slm.ollama_client._open",
             side_effect=URLError("down"),
         ):
             self.assertFalse(is_reachable(self.settings))
+
+    def test_chat_does_not_follow_redirect(self) -> None:
+        """A 302 is fetched from another host and was accepted as the Ollama reply."""
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        from local_coding_slm.ollama_client import _RefuseRedirect
+
+        with self.assertRaises(OllamaError) as direct:
+            _RefuseRedirect().redirect_request(
+                None, None, 302, "Found", {}, "http://127.0.0.1/stolen"
+            )
+        self.assertIn("redirected", str(direct.exception))
+
+        hits = {"get": 0}
+
+        class Other(BaseHTTPRequestHandler):
+            def do_GET(self):
+                hits["get"] += 1
+                body = json.dumps({"message": {"content": "stolen"}}).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        class Redirect(BaseHTTPRequestHandler):
+            def do_POST(self):
+                self.send_response(302)
+                self.send_header("Location", other_url)
+                self.end_headers()
+
+        other = ThreadingHTTPServer(("127.0.0.1", 0), Other)
+        redir = ThreadingHTTPServer(("127.0.0.1", 0), Redirect)
+        other_url = f"http://127.0.0.1:{other.server_address[1]}/api/chat"
+        for server in (other, redir):
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+        settings = OllamaSettings(
+            base_url=f"http://127.0.0.1:{redir.server_address[1]}",
+            fast_model="qwen3.5:9b",
+            strong_model="devstral-small-2",
+            num_ctx=4096,
+        )
+        try:
+            with self.assertRaises(OllamaError) as raised:
+                chat("sys", "write ping", model="fast", settings=settings)
+            self.assertIn("redirected", str(raised.exception))
+            self.assertEqual(hits["get"], 0)
+        finally:
+            other.shutdown()
+            redir.shutdown()
+            other.server_close()
+            redir.server_close()
 
     def test_format_user_task_includes_files(self) -> None:
         text = format_user_task(
