@@ -107,7 +107,7 @@ Two backends, one schema:
 | Backend | When | What the clock measures |
 | --- | --- | --- |
 | `--backend stub` | Cloud / CI, no GPU | Real MCP + HTTP + scoring. Generation time is a loopback stub with scripted replies and `--fast-ms` / `--strong-ms` delays. |
-| `--backend live` | Workstation with Ollama | The same loop against the configured private runtime. Those `mcp_ms` values are the paper's model timings. |
+| `--backend live` | Workstation with Ollama | The same loop against `OLLAMA_BASE_URL`. Downstairs runs are the Phase 3 timings. Personal host order: [harness-host-plan.md](harness-host-plan.md). |
 
 Stub profiles (deterministic **workers**, not model-quality claims):
 

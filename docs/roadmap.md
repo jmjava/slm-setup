@@ -20,6 +20,12 @@ LAN addresses, or SKUs here.
 2. **Then — keep measuring** Part A on downstairs through November.
 3. **Later — Halo / 395** (~Black Friday): bring-up and A13 only after downstairs is measuring.
 
+**Personal harness link:** [harness-host-plan.md](harness-host-plan.md).
+Same `run_harness.py` / `run_eval.py --live` commands. Prove the link
+on the IDE NVIDIA card first; the AMD host in that plan comes after
+that link has a fast-model live row. Phase 3 timings stay on the
+downstairs forward.
+
 Public-safe downstairs notes:
 [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md).
 
