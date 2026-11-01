@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
-from local_coding_slm.safety import is_official_library_tag
+from local_coding_slm.safety import classify_base_url, is_official_library_tag
 
 DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 DEFAULT_FAST_MODEL = "qwen3.5:9b"
@@ -72,7 +72,15 @@ class OllamaSettings:
         return parsed.hostname or "unknown"
 
 
+def _refuse_failed_base_url(url: str) -> None:
+    """Do not talk to a URL the server start check would reject."""
+    result = classify_base_url(url)
+    if result.status == "fail":
+        raise OllamaError(result.message)
+
+
 def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, Any]:
+    _refuse_failed_base_url(url)
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url,
@@ -100,6 +108,7 @@ def _post_json(url: str, payload: dict[str, Any], timeout_s: int) -> dict[str, A
 
 
 def _get_json(url: str, timeout_s: int) -> dict[str, Any]:
+    _refuse_failed_base_url(url)
     req = urllib.request.Request(url, method="GET")
     try:
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
