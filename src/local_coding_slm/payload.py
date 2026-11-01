@@ -101,6 +101,10 @@ def _secret_in_text(text: str | None) -> str | None:
 
 
 def _secret_path(path: str) -> str | None:
+    return _secret_in_text(path) or _secret_basename(path)
+
+
+def _secret_basename(path: str) -> str | None:
     normalized = path.replace("\\", "/").lower()
     name = normalized.rsplit("/", 1)[-1]
     if name == ".env.example":
