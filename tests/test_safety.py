@@ -168,6 +168,15 @@ class TestLocalListen(unittest.TestCase):
         result = classify_local_listeners(parse_proc_net_listen_ports(text))
         self.assertEqual(result.status, "fail", result.message)
 
+    def test_lowercase_listen_state_fails_when_not_loopback(self) -> None:
+        """State 0a is LISTEN. A wildcard row must not be dropped as 'not listening'."""
+        text = (
+            "  sl  local_address rem_address   st\n"
+            "   0: 00000000:2CAA 00000000:0000 0a 00000000:00000000\n"
+        )
+        result = classify_local_listeners(parse_proc_net_listen_ports(text))
+        self.assertEqual(result.status, "fail", result.message)
+
 
 class TestHygiene(unittest.TestCase):
     def test_placeholder_ips_pass(self) -> None:
