@@ -61,6 +61,20 @@ class TestClassifyBaseUrl(unittest.TestCase):
     def test_empty_fails(self) -> None:
         self.assertEqual(classify_base_url("").status, "fail")
 
+    def test_wildcard_spellings_and_non_unicast_fail(self) -> None:
+        """Unspecified and reserved addresses are also private; they must not warn."""
+        cases = (
+            "http://[::0]:11434",
+            "http://[0:0:0:0:0:0:0:0]:11434",
+            "http://[::ffff:0.0.0.0]:11434",
+            "http://255.255.255.255:11434",
+            "http://[0.0.0.0]:11434",
+        )
+        for url in cases:
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+
 
 class TestClassifyModelTag(unittest.TestCase):
     def test_starter_tags_pass(self) -> None:
