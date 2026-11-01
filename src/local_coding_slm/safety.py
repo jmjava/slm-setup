@@ -208,7 +208,7 @@ def parse_proc_net_listen_ports(text: str) -> list[tuple[str, int]]:
         parts = line.split()
         if len(parts) < 4:
             continue
-        if parts[3] != _LISTEN_STATE:
+        if parts[3].upper() != _LISTEN_STATE:
             continue
         local = parts[1]
         if ":" not in local:
