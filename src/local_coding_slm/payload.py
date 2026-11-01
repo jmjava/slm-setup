@@ -57,6 +57,10 @@ def inspect_payload(
         reason = _secret_in_text(text)
         if reason:
             return reason
+    return _files_block_reason(files)
+
+
+def _files_block_reason(files: Sequence[dict[str, str]] | None) -> str | None:
     items = list(files or ())
     if len(items) > MAX_FILES:
         return "too_many_files"
