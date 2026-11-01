@@ -82,7 +82,7 @@ def _refuse_failed_base_url(url: str) -> None:
 class _RefuseRedirect(urllib.request.HTTPRedirectHandler):
     """A 302 on POST is fetched from the Location host and accepted as Ollama."""
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+    def redirect_request(self, _req, _fp, _code, _msg, _headers, newurl):
         raise OllamaError(f"Ollama redirected the request to {newurl}")
 
 

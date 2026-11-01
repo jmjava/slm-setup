@@ -321,6 +321,14 @@ class ClientTests(unittest.TestCase):
         import threading
         from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+        from local_coding_slm.ollama_client import _RefuseRedirect
+
+        with self.assertRaises(OllamaError) as direct:
+            _RefuseRedirect().redirect_request(
+                None, None, 302, "Found", {}, "http://127.0.0.1/stolen"
+            )
+        self.assertIn("redirected", str(direct.exception))
+
         hits = {"get": 0}
 
         class Other(BaseHTTPRequestHandler):
@@ -332,17 +340,11 @@ class ClientTests(unittest.TestCase):
                 self.end_headers()
                 self.wfile.write(body)
 
-            def log_message(self, fmt, *args):
-                return
-
         class Redirect(BaseHTTPRequestHandler):
             def do_POST(self):
                 self.send_response(302)
                 self.send_header("Location", other_url)
                 self.end_headers()
-
-            def log_message(self, fmt, *args):
-                return
 
         other = ThreadingHTTPServer(("127.0.0.1", 0), Other)
         redir = ThreadingHTTPServer(("127.0.0.1", 0), Redirect)
