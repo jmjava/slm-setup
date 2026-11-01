@@ -75,6 +75,19 @@ class TestClassifyBaseUrl(unittest.TestCase):
                 result = classify_base_url(url)
                 self.assertEqual(result.status, "fail", result.message)
 
+    def test_link_local_url_fails(self) -> None:
+        """Link-local addresses are also private, so they must not warn."""
+        cases = (
+            "http://169.254.169.254:11434",
+            "http://[fe80::1]:11434",
+            "http://[::ffff:169.254.169.254]:11434",
+            "http://[fe80::1%25eth0]:11434",
+        )
+        for url in cases:
+            with self.subTest(url=url):
+                result = classify_base_url(url)
+                self.assertEqual(result.status, "fail", result.message)
+
 
 class TestClassifyModelTag(unittest.TestCase):
     def test_starter_tags_pass(self) -> None:

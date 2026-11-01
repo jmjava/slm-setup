@@ -97,14 +97,19 @@ def _classify_parsed_url(parsed: ParseResult) -> CheckResult | None:
     return None
 
 
+def _is_non_unicast(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Multicast, reserved, and link-local are also marked private."""
+    return bool(addr.is_multicast or addr.is_reserved or addr.is_link_local)
+
+
 def _classify_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> CheckResult:
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
     # These addresses are also is_private. Check them first or a wildcard
-    # spelling such as [::0] or [::ffff:0.0.0.0] warns and the checker exits 0.
+    # spelling or a link-local address warns and the checker exits 0.
     if addr.is_unspecified:
         return _base_url_fail("OLLAMA_BASE_URL must not use a wildcard bind address")
-    if addr.is_multicast or addr.is_reserved:
+    if _is_non_unicast(addr):
         return _base_url_fail("OLLAMA_BASE_URL is not a unicast host address")
     if addr.is_private:
         return CheckResult(
