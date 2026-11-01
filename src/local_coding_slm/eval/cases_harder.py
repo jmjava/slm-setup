@@ -302,7 +302,7 @@ def _exception_renamed(by_path: dict[str, str]) -> str | None:
 
 
 def _exception_behavior(merged: dict[str, str]) -> None:
-    from local_coding_slm.eval.score import _load_module
+    from local_coding_slm.eval.score import _load_module, write_score_files
     import sys
     import tempfile
     from pathlib import Path
@@ -310,10 +310,7 @@ def _exception_behavior(merged: dict[str, str]) -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        for rel, content in merged.items():
-            dest = root / rel
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(content, encoding="utf-8")
+        write_score_files(root, merged)
         loaded: dict[str, ModuleType] = {}
         try:
             errors = _load_module(root, "errors", loaded)
