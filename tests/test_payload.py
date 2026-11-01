@@ -39,6 +39,22 @@ class InspectPayloadTests(unittest.TestCase):
                 self.assertIsNotNone(reason, msg=label)
                 self.assertTrue(reason)
 
+    def test_other_ssh_private_key_names_refused(self) -> None:
+        """OpenSSH defaults other than id_rsa and id_ed25519 are still key files."""
+        names = (
+            "id_ecdsa",
+            "id_ecdsa.pub",
+            "id_dsa",
+            "id_dsa.pub",
+            "id_ecdsa_sk",
+            "id_ed25519_sk",
+            "id_rsa_sk",
+        )
+        for name in names:
+            with self.subTest(name=name):
+                reason = inspect_payload([{"path": name, "content": "not-a-real-key"}])
+                self.assertEqual(reason, "secrets_file")
+
     def test_clean_snippet_ok(self) -> None:
         self.assertIsNone(
             inspect_payload([{"path": "add.py", "content": "def add(a, b): return a + b\n"}])
