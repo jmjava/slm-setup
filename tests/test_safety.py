@@ -249,6 +249,25 @@ class TestRunChecks(unittest.TestCase):
         )
         self.assertEqual(worst_status(results), "pass")
 
+    def test_export_prefixed_base_url_fails(self) -> None:
+        """A shell export line in .env is still the base URL the checker must see."""
+        from local_coding_slm.envfile import merge_dotenv
+
+        environ: dict[str, str] = {}
+        merge_dotenv(
+            ["export OLLAMA_BASE_URL=http://8.8.8.8:11434"],
+            environ,
+        )
+        results = run_checks(
+            environ=environ,
+            listen_rows=[("127.0.0.1", 11434)],
+            tracked=[],
+            env_ignored=True,
+            env_example_text="OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
+        )
+        base = next(item for item in results if item.name == "base_url")
+        self.assertEqual(base.status, "fail", base.message)
+
     def test_git_ls_files_failure_fails_closed(self) -> None:
         """A failed git listing is not an empty tree with no addresses."""
         import subprocess

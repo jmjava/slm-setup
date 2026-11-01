@@ -6,7 +6,7 @@ from collections.abc import Iterable, MutableMapping
 
 
 def merge_dotenv(lines: Iterable[str], environ: MutableMapping[str, str]) -> None:
-    """Apply KEY=value lines. Comments and blanks are ignored.
+    """Apply KEY=value lines. A leading ``export`` is part of the shell, not the key.
 
     A missing key or an empty string is treated as unset so Cursor
     ``${env:NAME}`` interpolation cannot block a real value from ``.env``.
@@ -17,7 +17,7 @@ def merge_dotenv(lines: Iterable[str], environ: MutableMapping[str, str]) -> Non
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        key = key.strip()
+        key = key.strip().removeprefix("export ").strip()
         value = value.strip().strip("'").strip('"')
         if not key:
             continue
