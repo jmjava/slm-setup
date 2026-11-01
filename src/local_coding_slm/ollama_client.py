@@ -159,6 +159,11 @@ def list_model_names(settings: OllamaSettings | None = None) -> list[str]:
     return names
 
 
+def _model_present(tag: str, names: list[str]) -> bool:
+    """Exact tag, or the same tag with an Ollama suffix such as :latest."""
+    return any(name == tag or name.startswith(f"{tag}:") for name in names)
+
+
 def status_report(settings: OllamaSettings | None = None) -> str:
     settings = settings or OllamaSettings.from_env()
     try:
@@ -168,8 +173,8 @@ def status_report(settings: OllamaSettings | None = None) -> str:
             f"host={settings.host_label()} ok=false error={exc} "
             f"fast={settings.fast_model} strong={settings.strong_model}"
         )
-    have_fast = any(settings.fast_model in n for n in names)
-    have_strong = any(settings.strong_model in n for n in names)
+    have_fast = _model_present(settings.fast_model, names)
+    have_strong = _model_present(settings.strong_model, names)
     return (
         f"host={settings.host_label()} ok=true "
         f"fast={settings.fast_model} present={have_fast} "
