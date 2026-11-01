@@ -20,8 +20,11 @@ MAX_TOKENS = 4096
 _PRIVATE_KEY_MARKERS = (
     "-----BEGIN OPENSSH PRIVATE KEY-----",
     "-----BEGIN RSA PRIVATE KEY-----",
+    "-----BEGIN DSA PRIVATE KEY-----",
     "-----BEGIN EC PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----",
+    "-----BEGIN ENCRYPTED PRIVATE KEY-----",
+    "-----BEGIN PGP PRIVATE KEY BLOCK-----",
 )
 _SECRET_BASENAMES = frozenset(
     {

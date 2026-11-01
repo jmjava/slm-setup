@@ -68,6 +68,20 @@ class InspectPayloadTests(unittest.TestCase):
             "secret_content",
         )
 
+    def test_other_private_key_headers_refused(self) -> None:
+        """PKCS#8 encrypted, DSA, and PGP private keys are still private keys."""
+        headers = (
+            "-----BEGIN ENCRYPTED PRIVATE KEY-----",
+            "-----BEGIN DSA PRIVATE KEY-----",
+            "-----BEGIN PGP PRIVATE KEY BLOCK-----",
+        )
+        for header in headers:
+            with self.subTest(header=header):
+                reason = inspect_payload(
+                    [{"path": "notes.py", "content": f"{header}\nNOT-A-REAL-KEY\n"}]
+                )
+                self.assertEqual(reason, "secret_content")
+
     def test_private_key_in_task(self) -> None:
         self.assertEqual(
             inspect_payload(
