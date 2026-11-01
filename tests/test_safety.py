@@ -179,6 +179,15 @@ class TestHygiene(unittest.TestCase):
                 self.assertEqual(result.status, "fail")
                 self.assertIn(text, result.message)
 
+    def test_integer_form_url_host_fails(self) -> None:
+        """Decimal and hex URL hosts are addresses even though they are not dotted quads."""
+        for text in ("http://134744072:11434", "http://0x08080808/"):
+            with self.subTest(text=text):
+                result = classify_tracked_ipv4([("README.md", f"OLLAMA_BASE_URL={text}")])
+                self.assertEqual(result.status, "fail")
+        loopback = classify_tracked_ipv4([("README.md", "see http://2130706433/")])
+        self.assertEqual(loopback.status, "pass")
+
     def test_committed_workflow_yaml_ip_fails(self) -> None:
         """GitHub workflow YAML is committed text, so an address there must fail."""
         import subprocess

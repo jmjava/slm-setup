@@ -58,6 +58,10 @@ PLACEHOLDER_IPV4 = frozenset(
 )
 
 IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+_INTEGER_URL_HOST_RE = re.compile(
+    r"https?://(0x[0-9a-f]+|\d+)(?=[:/?#]|\s|$)",
+    re.IGNORECASE,
+)
 UNSAFE_MODEL_RE = re.compile(r"://|[\\/]|\.\.|@", re.IGNORECASE)
 # Decimal 2130706433 or 0x7f000001 disguise a dotted IPv4.
 _INTEGER_FORM_IP_RE = re.compile(r"^(?:\d+|0x[0-9a-f]+)$", re.IGNORECASE)
@@ -286,13 +290,34 @@ def _is_committed_ip_hit(match: str) -> bool:
     return bool(addr.is_private or addr.is_global)
 
 
+def _integer_host_is_hit(host: str) -> bool:
+    """Decimal and hex URL hosts are IPv4, including values ipaddress dotted form rejects."""
+    try:
+        number = int(host, 16) if host.lower().startswith("0x") else int(host, 10)
+    except ValueError:
+        return False
+    if number > 0xFFFFFFFF:
+        return False
+    addr = ipaddress.IPv4Address(number)
+    if addr.is_loopback or addr.is_unspecified:
+        return False
+    return bool(addr.is_private or addr.is_global)
+
+
+def _committed_ip_matches(text: str) -> list[str]:
+    matches = [match for match in IPV4_RE.findall(text) if _is_committed_ip_hit(match)]
+    for host in _INTEGER_URL_HOST_RE.findall(text):
+        if _integer_host_is_hit(host):
+            matches.append(host)
+    return matches
+
+
 def classify_tracked_ipv4(paths_and_text: Iterable[tuple[str, str]]) -> CheckResult:
     """Fail committed files that contain non-placeholder private or public IPs."""
     hits: list[str] = []
     for path, text in paths_and_text:
-        for match in IPV4_RE.findall(text):
-            if _is_committed_ip_hit(match):
-                hits.append(f"{path}:{match}")
+        for match in _committed_ip_matches(text):
+            hits.append(f"{path}:{match}")
     if hits:
         return CheckResult(
             "committed_ips",
