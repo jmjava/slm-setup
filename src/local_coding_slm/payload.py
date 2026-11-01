@@ -20,8 +20,11 @@ MAX_TOKENS = 4096
 _PRIVATE_KEY_MARKERS = (
     "-----BEGIN OPENSSH PRIVATE KEY-----",
     "-----BEGIN RSA PRIVATE KEY-----",
+    "-----BEGIN DSA PRIVATE KEY-----",
     "-----BEGIN EC PRIVATE KEY-----",
     "-----BEGIN PRIVATE KEY-----",
+    "-----BEGIN ENCRYPTED PRIVATE KEY-----",
+    "-----BEGIN PGP PRIVATE KEY BLOCK-----",
 )
 _SECRET_BASENAMES = frozenset(
     {
@@ -54,6 +57,10 @@ def inspect_payload(
         reason = _secret_in_text(text)
         if reason:
             return reason
+    return _files_block_reason(files)
+
+
+def _files_block_reason(files: Sequence[dict[str, str]] | None) -> str | None:
     items = list(files or ())
     if len(items) > MAX_FILES:
         return "too_many_files"
