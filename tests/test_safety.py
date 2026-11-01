@@ -235,11 +235,37 @@ class TestRunChecks(unittest.TestCase):
             results = run_checks(**safe)
         ips = next(item for item in results if item.name == "committed_ips")
         self.assertEqual(ips.status, "fail")
-        self.assertIn("could not list", ips.message)
+        self.assertIn("could not read", ips.message)
         with patch("local_coding_slm.safety.subprocess.run", side_effect=OSError("git missing")):
             raised = run_checks(**safe)
         missing = next(item for item in raised if item.name == "committed_ips")
         self.assertEqual(missing.status, "fail")
+
+    def test_unreadable_tracked_file_fails_closed(self) -> None:
+        """A tracked text file that cannot be decoded is not an empty tree."""
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "notes.md").write_bytes(b"see 8.8.8.8 \xff\n")
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+            results = run_checks(
+                environ={
+                    "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
+                    "OLLAMA_FAST_MODEL": "qwen3.5:9b",
+                    "OLLAMA_STRONG_MODEL": "devstral-small-2",
+                },
+                listen_rows=[("127.0.0.1", 11434)],
+                env_ignored=True,
+                env_example_text="OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
+                root=root,
+            )
+        ips = next(item for item in results if item.name == "committed_ips")
+        self.assertEqual(ips.status, "fail")
+        self.assertIn("could not read", ips.message)
 
     def test_unofficial_library_tag_fails_run_checks(self) -> None:
         results = run_checks(
