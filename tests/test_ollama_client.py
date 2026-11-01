@@ -164,6 +164,22 @@ class ClientTests(unittest.TestCase):
         self.assertIn("fast=qwen3.5:9b present=True", report)
         self.assertIn("strong=devstral-small-2 present=False", report)
 
+    def test_status_report_ignores_substring_model_names(self) -> None:
+        """A name that merely contains the tag is not that model. A :latest suffix is."""
+        payload = {
+            "models": [
+                {"name": "not-qwen3.5:9b-extra"},
+                {"name": "devstral-small-2:latest"},
+            ]
+        }
+        with patch(
+            "local_coding_slm.ollama_client._open",
+            return_value=_FakeResp(payload),
+        ):
+            report = status_report(self.settings)
+        self.assertIn("fast=qwen3.5:9b present=False", report)
+        self.assertIn("strong=devstral-small-2 present=True", report)
+
     def test_chat_returns_message_content(self) -> None:
         payload = {"message": {"content": "def ping(): return True"}}
         with patch(
