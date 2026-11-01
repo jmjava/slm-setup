@@ -1,8 +1,8 @@
 """Refuse unsafe or oversized snippets before they reach Ollama.
 
 Used by the MCP server (defense in depth) and by eval routing. This is
-not a classifier: it only looks at file names, the task string, size,
-and a few secret shapes. Code that merely mentions ``password`` is
+not a classifier: it only looks at file names, task, language, style,
+size, and a few secret shapes. Code that merely mentions ``password`` is
 allowed.
 """
 
@@ -44,14 +44,16 @@ def inspect_payload(
     *,
     max_tokens: int | None = None,
     task: str | None = None,
+    language: str | None = None,
+    style: str | None = None,
 ) -> str | None:
     """Return a stable reason string, or None if the payload may be sent."""
     if max_tokens is not None and max_tokens > MAX_TOKENS:
         return "max_tokens_too_large"
-    if task:
-        task_reason = _secret_content(task)
-        if task_reason:
-            return task_reason
+    for text in (task, language, style):
+        reason = _secret_in_text(text)
+        if reason:
+            return reason
     items = list(files or ())
     if len(items) > MAX_FILES:
         return "too_many_files"
@@ -73,6 +75,12 @@ def inspect_payload(
 
 def refusal_message(reason: str) -> str:
     return f"ERROR: refused to send payload to local model ({reason})"
+
+
+def _secret_in_text(text: str | None) -> str | None:
+    if not text:
+        return None
+    return _secret_content(text)
 
 
 def _secret_path(path: str) -> str | None:

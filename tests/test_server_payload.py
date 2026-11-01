@@ -53,6 +53,28 @@ class ServerPayloadTests(unittest.TestCase):
         self.assertIn("secret_content", text)
         chat.assert_not_called()  # type: ignore[attr-defined]
 
+    @patch("local_coding_slm.server.chat")
+    def test_secret_in_style_or_language_never_calls_ollama(self, chat: object) -> None:
+        """Style and language are sent to Ollama; a secret there must not pass."""
+        cases = (
+            (None, "-----BEGIN OPENSSH PRIVATE KEY-----\nNOT-A-REAL-KEY\n"),
+            ("sk-", None),
+        )
+        for language, style in cases:
+            with self.subTest(language=language, style=style):
+                text = _run_tool(
+                    "local_code",
+                    "rename a helper",
+                    [{"path": "app.py", "content": "def add(a, b):\n    return a + b\n"}],
+                    language,
+                    style,
+                    "fast",
+                    None,
+                )
+                self.assertTrue(text.startswith("ERROR:"))
+                self.assertIn("secret_content", text)
+        chat.assert_not_called()  # type: ignore[attr-defined]
+
     @patch("local_coding_slm.server.chat", return_value="ok")
     def test_clean_payload_reaches_chat(self, chat: object) -> None:
         text = _run_tool(

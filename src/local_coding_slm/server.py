@@ -67,7 +67,13 @@ def _run_tool(
 ) -> str:
     if not task or not task.strip():
         return "ERROR: task is required"
-    blocked = inspect_payload(files, max_tokens=max_tokens, task=task)
+    blocked = inspect_payload(
+        files,
+        max_tokens=max_tokens,
+        task=task,
+        language=language,
+        style=style,
+    )
     if blocked:
         return refusal_message(blocked)
     user = format_user_task(task, files=files, language=language, style=style)
