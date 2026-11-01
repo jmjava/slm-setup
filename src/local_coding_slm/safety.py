@@ -230,11 +230,18 @@ def _hex_ip(addr_hex: str) -> str | None:
     return None
 
 
+def _is_loopback_ip(ip: str) -> bool:
+    try:
+        return ipaddress.ip_address(ip).is_loopback
+    except ValueError:
+        return False
+
+
 def classify_local_listeners(
     rows: Sequence[tuple[str, int]],
     port: int = 11434,
 ) -> CheckResult:
-    """Fail if this host listens on the Ollama port at a wildcard address."""
+    """Fail unless every listener on the Ollama port is loopback."""
     matching = [(ip, p) for ip, p in rows if p == port]
     if not matching:
         return CheckResult(
@@ -242,12 +249,12 @@ def classify_local_listeners(
             "warn",
             f"no local LISTEN on :{port} (Ollama may be down or on another port)",
         )
-    wild = [ip for ip, _ in matching if ip in {"0.0.0.0", "::", "::0"}]
-    if wild:
+    exposed = [ip for ip, _ in matching if not _is_loopback_ip(ip)]
+    if exposed:
         return CheckResult(
             "local_listen",
             "fail",
-            f"Ollama port {port} is bound on {', '.join(wild)}; keep it on 127.0.0.1",
+            f"Ollama port {port} is bound on {', '.join(exposed)}; keep it on 127.0.0.1",
         )
     return CheckResult(
         "local_listen",

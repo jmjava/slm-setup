@@ -128,6 +128,20 @@ class TestLocalListen(unittest.TestCase):
         result = classify_local_listeners([("127.0.0.1", 11434)])
         self.assertEqual(result.status, "pass")
 
+    def test_non_loopback_listen_fails(self) -> None:
+        """Public, LAN, and disguised wildcard binds must not pass."""
+        cases = (
+            [("8.8.8.8", 11434)],
+            [("192.168.1.10", 11434)],
+            [("0:0:0:0:0:0:0:0", 11434)],
+            [("::ffff:0.0.0.0", 11434)],
+            [("169.254.169.254", 11434)],
+        )
+        for rows in cases:
+            with self.subTest(rows=rows):
+                result = classify_local_listeners(rows)
+                self.assertEqual(result.status, "fail", result.message)
+
     def test_missing_listener_warns(self) -> None:
         result = classify_local_listeners([])
         self.assertEqual(result.status, "warn")
