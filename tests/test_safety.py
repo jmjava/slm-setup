@@ -171,6 +171,25 @@ class TestHygiene(unittest.TestCase):
         result = classify_tracked_ipv4([("README.md", "use 10.0.0.65")])
         self.assertEqual(result.status, "fail")
 
+    def test_committed_workflow_yaml_ip_fails(self) -> None:
+        """GitHub workflow YAML is committed text, so an address there must fail."""
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        from local_coding_slm.safety import git_tracked_text_files
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            workflow = root / ".github" / "workflows"
+            workflow.mkdir(parents=True)
+            (workflow / "deploy.yml").write_text("host: 8.8.8.8\n", encoding="utf-8")
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
+            result = classify_tracked_ipv4(git_tracked_text_files(root))
+        self.assertEqual(result.status, "fail")
+        self.assertIn("8.8.8.8", result.message)
+
     def test_env_example_ok(self) -> None:
         text = "OLLAMA_BASE_URL=http://127.0.0.1:11434\n# http://<inference-host>:11434\n"
         self.assertEqual(classify_env_example(text).status, "pass")

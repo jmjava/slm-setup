@@ -369,7 +369,18 @@ def git_tracked_text_files(root: Path) -> list[tuple[str, str]]:
         path = root / rel_s
         if not path.is_file():
             continue
-        if path.suffix.lower() not in {".md", ".py", ".json", ".toml", ".sh", ".example", ".txt", ""}:
+        if path.suffix.lower() not in {
+            ".md",
+            ".py",
+            ".json",
+            ".toml",
+            ".sh",
+            ".example",
+            ".txt",
+            ".yml",
+            ".yaml",
+            "",
+        }:
             if path.name not in {".gitignore", ".env.example", "CLAUDE.md"}:
                 continue
         try:
