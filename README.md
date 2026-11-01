@@ -31,6 +31,9 @@ does bounded, mechanical generation on a private GPU host running
   AMD Halo-class Ollama host, placeholders only.
 - **[docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md)** —
   Copilot A8 / Claude A9 clicks. Config in git is not a pass.
+- **[docs/harness-host-plan.md](docs/harness-host-plan.md)** — link the
+  live harness to the IDE 4080-class card first, then the Ryzen AI
+  Max+ 395. Phase 3 timings stay on the downstairs forward.
 
 ## What this repo is not
 
