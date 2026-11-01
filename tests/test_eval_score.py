@@ -8,6 +8,51 @@ from local_coding_slm.eval.cases import CASES_BY_ID, FIXTURES, SEED_CASE_IDS
 from local_coding_slm.eval.score import score_candidate
 
 
+class ScorePathTests(unittest.TestCase):
+    def test_escaping_score_path_is_not_written(self) -> None:
+        """A fenced path outside the temp dir must not be created or pass."""
+        from pathlib import Path
+
+        from local_coding_slm.eval.score import BehaviorCheck, EvalCase
+
+        escapes = (
+            "../slm-score-escape-proof.py",
+            "/tmp/slm-score-escape-abs.py",
+        )
+        case = EvalCase(
+            id="escape",
+            tool="local_refactor",
+            task="add",
+            files=({"path": "add.py", "content": "def add(a, b):\n    return a + b\n"},),
+            required_paths=("add.py",),
+            required_top_level=("add",),
+            behavior=(BehaviorCheck("add", "add", (1, 2), 3),),
+        )
+        for rel in escapes:
+            outside = Path("/tmp") / Path(rel).name
+            if outside.exists():
+                outside.unlink()
+            text = (
+                "```python\n"
+                "# add.py\n"
+                "def add(a, b):\n"
+                "    return a + b\n"
+                "```\n"
+                "```python\n"
+                f"# {rel}\n"
+                "def unused():\n"
+                "    return 1\n"
+                "```\n"
+            )
+            with self.subTest(rel=rel):
+                result = score_candidate(text, case)
+                self.assertFalse(result.passed)
+                self.assertIsNotNone(result.first_failure)
+                assert result.first_failure is not None
+                self.assertEqual(result.first_failure.name, "behavior")
+                self.assertFalse(outside.exists(), outside)
+
+
 class FixtureCorpusTests(unittest.TestCase):
     def test_every_fixture_matches_expected_layer(self) -> None:
         self.assertGreaterEqual(len(FIXTURES), 16)

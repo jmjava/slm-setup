@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from pathlib import Path
+from types import ModuleType
 
 from local_coding_slm.eval.cases_extended import (
     EXTENDED_CASES,
@@ -249,41 +251,52 @@ def _has_test_functions(by_path: dict[str, str]) -> str | None:
     return None
 
 
+def _execute_generated_tests(
+    root: Path,
+    merged: dict[str, str],
+    loaded: dict[str, ModuleType],
+) -> None:
+    from local_coding_slm.eval.score import _load_module
+
+    ran = 0
+    for rel in merged:
+        if "test" not in Path(rel).name or not rel.endswith(".py"):
+            continue
+        module_name = Path(rel).stem
+        module = _load_module(root, module_name, loaded)
+        ran += _run_module_tests(module, module_name)
+    if ran == 0:
+        raise AssertionError("no test_* functions executed")
+
+
+def _run_module_tests(module: ModuleType, module_name: str) -> int:
+    ran = 0
+    for name in dir(module):
+        if not name.startswith("test_"):
+            continue
+        fn = getattr(module, name)
+        if not callable(fn):
+            continue
+        try:
+            fn()
+        except AssertionError as exc:
+            raise AssertionError(f"{module_name}.{name} failed") from exc
+        ran += 1
+    return ran
+
+
 def _run_generated_tests(merged: dict[str, str]) -> None:
     import sys
     import tempfile
-    from pathlib import Path
-    from types import ModuleType
 
-    from local_coding_slm.eval.score import _load_module
+    from local_coding_slm.eval.score import write_score_files
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        for rel, content in merged.items():
-            dest = root / rel
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(content, encoding="utf-8")
+        write_score_files(root, merged)
         loaded: dict[str, ModuleType] = {}
         try:
-            ran = 0
-            for rel in merged:
-                if "test" not in Path(rel).name or not rel.endswith(".py"):
-                    continue
-                module_name = Path(rel).stem
-                module = _load_module(root, module_name, loaded)
-                for name in dir(module):
-                    if not name.startswith("test_"):
-                        continue
-                    fn = getattr(module, name)
-                    if not callable(fn):
-                        continue
-                    try:
-                        fn()
-                    except AssertionError as exc:
-                        raise AssertionError(f"{module_name}.{name} failed") from exc
-                    ran += 1
-            if ran == 0:
-                raise AssertionError("no test_* functions executed")
+            _execute_generated_tests(root, merged, loaded)
         finally:
             for name, mod in list(sys.modules.items()):
                 file = getattr(mod, "__file__", None)

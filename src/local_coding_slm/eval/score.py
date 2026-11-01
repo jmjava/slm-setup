@@ -348,13 +348,26 @@ def _nested_location(python_files: dict[str, str], missing: list[str]) -> str | 
     return None
 
 
+def contained_score_path(root: Path, rel: str) -> Path:
+    """Stay inside the score directory. Absolute paths and .. are rejected."""
+    base = root.resolve()
+    dest = (root / rel).resolve()
+    if not dest.is_relative_to(base):
+        raise AssertionError(f"path escapes the score directory: {rel}")
+    return dest
+
+
+def write_score_files(root: Path, files: dict[str, str]) -> None:
+    for rel, content in files.items():
+        dest = contained_score_path(root, rel)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(content, encoding="utf-8")
+
+
 def _run_behavior(by_path: dict[str, str], checks: Sequence[BehaviorCheck]) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        for rel, content in by_path.items():
-            dest = root / rel
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_text(content, encoding="utf-8")
+        write_score_files(root, by_path)
         loaded: dict[str, ModuleType] = {}
         try:
             for check in checks:
