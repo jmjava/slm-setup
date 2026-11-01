@@ -85,52 +85,45 @@ def _is_integer_form_ip(host: str) -> bool:
     return bool(_INTEGER_FORM_IP_RE.fullmatch(host))
 
 
-def classify_base_url(url: str) -> CheckResult:
-    """Prefer loopback. Fail wildcards, tunnels, hostnames, userinfo, and non-http(s)."""
-    raw = (url or "").strip()
-    if not raw:
-        return CheckResult("base_url", "fail", "OLLAMA_BASE_URL is empty")
-    try:
-        parsed = urlparse(raw)
-    except ValueError:
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL is not a valid http(s) URL",
-        )
+def _base_url_fail(message: str) -> CheckResult:
+    return CheckResult("base_url", "fail", message)
+
+
+def _classify_parsed_url(parsed: ParseResult) -> CheckResult | None:
     if parsed.scheme not in {"http", "https"}:
-        return CheckResult(
-            "base_url",
-            "fail",
-            f"OLLAMA_BASE_URL must be http(s), got scheme={parsed.scheme!r}",
-        )
+        return _base_url_fail(f"OLLAMA_BASE_URL must be http(s), got scheme={parsed.scheme!r}")
     if _has_userinfo(parsed):
+        return _base_url_fail("OLLAMA_BASE_URL must not include userinfo; @-form hosts are rejected")
+    return None
+
+
+def _classify_ip(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> CheckResult:
+    if addr.is_loopback:
+        return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    # These addresses are also is_private. Check them first or a wildcard
+    # spelling such as [::0] or [::ffff:0.0.0.0] warns and the checker exits 0.
+    if addr.is_unspecified:
+        return _base_url_fail("OLLAMA_BASE_URL must not use a wildcard bind address")
+    if addr.is_multicast or addr.is_reserved:
+        return _base_url_fail("OLLAMA_BASE_URL is not a unicast host address")
+    if addr.is_private:
         return CheckResult(
             "base_url",
-            "fail",
-            "OLLAMA_BASE_URL must not include userinfo; @-form hosts are rejected",
+            "warn",
+            "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
         )
-    host = (parsed.hostname or "").lower()
+    return _base_url_fail("OLLAMA_BASE_URL looks public; do not put Ollama on the internet")
+
+
+def _classify_host(host: str) -> CheckResult:
     if not host:
-        return CheckResult("base_url", "fail", "OLLAMA_BASE_URL has no host")
+        return _base_url_fail("OLLAMA_BASE_URL has no host")
     if _is_integer_form_ip(host):
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL must not use a decimal or integer-form IP",
-        )
+        return _base_url_fail("OLLAMA_BASE_URL must not use a decimal or integer-form IP")
     if host in {"0.0.0.0", "::", "[::]"}:
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL must not use a wildcard bind address",
-        )
+        return _base_url_fail("OLLAMA_BASE_URL must not use a wildcard bind address")
     if any(marker in host for marker in TUNNEL_HOST_MARKERS):
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL looks like a public tunnel; do not publish Ollama",
-        )
+        return _base_url_fail("OLLAMA_BASE_URL looks like a public tunnel; do not publish Ollama")
     if host in {"localhost", "127.0.0.1", "::1"}:
         return CheckResult(
             "base_url",
@@ -140,38 +133,23 @@ def classify_base_url(url: str) -> CheckResult:
     try:
         addr = ipaddress.ip_address(host)
     except ValueError:
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL is a hostname; use 127.0.0.1 via SSH -L",
-        )
-    if addr.is_loopback:
-        return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
-    # These addresses are also is_private. Check them first or a wildcard
-    # spelling such as [::0] or [::ffff:0.0.0.0] warns and the checker exits 0.
-    if addr.is_unspecified:
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL must not use a wildcard bind address",
-        )
-    if addr.is_multicast or addr.is_reserved:
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL is not a unicast host address",
-        )
-    if addr.is_private:
-        return CheckResult(
-            "base_url",
-            "warn",
-            "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
-        )
-    return CheckResult(
-        "base_url",
-        "fail",
-        "OLLAMA_BASE_URL looks public; do not put Ollama on the internet",
-    )
+        return _base_url_fail("OLLAMA_BASE_URL is a hostname; use 127.0.0.1 via SSH -L")
+    return _classify_ip(addr)
+
+
+def classify_base_url(url: str) -> CheckResult:
+    """Prefer loopback. Fail wildcards, tunnels, hostnames, userinfo, and non-http(s)."""
+    raw = (url or "").strip()
+    if not raw:
+        return _base_url_fail("OLLAMA_BASE_URL is empty")
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return _base_url_fail("OLLAMA_BASE_URL is not a valid http(s) URL")
+    shaped = _classify_parsed_url(parsed)
+    if shaped is not None:
+        return shaped
+    return _classify_host((parsed.hostname or "").lower())
 
 
 def is_official_library_tag(tag: str) -> bool:
@@ -390,6 +368,19 @@ def git_tracked_text_files(root: Path) -> list[tuple[str, str]]:
     return out
 
 
+def _listen_check(
+    url: str,
+    *,
+    skip_listen: bool,
+    listen_rows: Sequence[tuple[str, int]] | None,
+) -> CheckResult:
+    if skip_listen:
+        return CheckResult("local_listen", "warn", "local listen check skipped")
+    rows = list(listen_rows) if listen_rows is not None else read_local_tcp_tables()
+    port = urlparse(url).port or 11434
+    return classify_local_listeners(rows, port=port)
+
+
 def run_checks(
     *,
     environ: Mapping[str, str] | None = None,
@@ -411,12 +402,7 @@ def run_checks(
         classify_model_tag("OLLAMA_STRONG_MODEL", env.get("OLLAMA_STRONG_MODEL", STARTER_STRONG_MODEL))
     )
 
-    if skip_listen:
-        results.append(CheckResult("local_listen", "warn", "local listen check skipped"))
-    else:
-        rows = list(listen_rows) if listen_rows is not None else read_local_tcp_tables()
-        port = urlparse(url).port or 11434
-        results.append(classify_local_listeners(rows, port=port))
+    results.append(_listen_check(url, skip_listen=skip_listen, listen_rows=listen_rows))
 
     example = env_example_text
     example_path = repo / ".env.example"
