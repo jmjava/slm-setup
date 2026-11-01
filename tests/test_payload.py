@@ -65,6 +65,21 @@ class InspectPayloadTests(unittest.TestCase):
             inspect_payload([{"path": "notes.py", "content": "deploy in ASIA\n"}])
         )
 
+    def test_secret_shapes_in_path_refused(self) -> None:
+        """File paths are copied into the model prompt, so secret shapes there count."""
+        paths = (
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nNOT-A-REAL-KEY",
+            "notes/ASIAIOSFODNN7EXAMPLE.py",
+            "notes/sk-notareal.py",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                reason = inspect_payload([{"path": path, "content": "x = 1\n"}])
+                self.assertEqual(reason, "secret_content")
+        self.assertIsNone(
+            inspect_payload([{"path": "notes/asia_deploy.py", "content": "x = 1\n"}])
+        )
+
     def test_clean_snippet_ok(self) -> None:
         self.assertIsNone(
             inspect_payload([{"path": "add.py", "content": "def add(a, b): return a + b\n"}])
