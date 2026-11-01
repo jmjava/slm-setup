@@ -90,7 +90,14 @@ def classify_base_url(url: str) -> CheckResult:
     raw = (url or "").strip()
     if not raw:
         return CheckResult("base_url", "fail", "OLLAMA_BASE_URL is empty")
-    parsed = urlparse(raw)
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a valid http(s) URL",
+        )
     if parsed.scheme not in {"http", "https"}:
         return CheckResult(
             "base_url",
@@ -140,17 +147,25 @@ def classify_base_url(url: str) -> CheckResult:
         )
     if addr.is_loopback:
         return CheckResult("base_url", "pass", "OLLAMA_BASE_URL is loopback")
+    # These addresses are also is_private. Check them first or a wildcard
+    # spelling such as [::0] or [::ffff:0.0.0.0] warns and the checker exits 0.
+    if addr.is_unspecified:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL must not use a wildcard bind address",
+        )
+    if addr.is_multicast or addr.is_reserved:
+        return CheckResult(
+            "base_url",
+            "fail",
+            "OLLAMA_BASE_URL is not a unicast host address",
+        )
     if addr.is_private:
         return CheckResult(
             "base_url",
             "warn",
             "OLLAMA_BASE_URL is a private LAN address; prefer SSH -L to 127.0.0.1",
-        )
-    if addr.is_unspecified or addr.is_multicast or addr.is_reserved:
-        return CheckResult(
-            "base_url",
-            "fail",
-            "OLLAMA_BASE_URL is not a unicast host address",
         )
     return CheckResult(
         "base_url",
