@@ -347,7 +347,8 @@ def git_is_ignored(root: Path, relpath: str) -> bool | None:
     return None
 
 
-def git_tracked_text_files(root: Path) -> list[tuple[str, str]]:
+def git_tracked_text_files(root: Path) -> list[tuple[str, str]] | None:
+    """Return tracked text, or None when git cannot list the tree."""
     try:
         proc = subprocess.run(
             ["git", "ls-files", "-z"],
@@ -356,9 +357,9 @@ def git_tracked_text_files(root: Path) -> list[tuple[str, str]]:
             capture_output=True,
         )
     except OSError:
-        return []
+        return None
     if proc.returncode != 0:
-        return []
+        return None
     out: list[tuple[str, str]] = []
     for rel in proc.stdout.split(b"\0"):
         if not rel:
@@ -389,6 +390,18 @@ def git_tracked_text_files(root: Path) -> list[tuple[str, str]]:
             continue
         out.append((str(path.relative_to(root)), text))
     return out
+
+
+def _committed_ip_result(
+    repo: Path,
+    tracked: Iterable[tuple[str, str]] | None,
+) -> CheckResult:
+    if tracked is not None:
+        return classify_tracked_ipv4(list(tracked))
+    files = git_tracked_text_files(repo)
+    if files is None:
+        return CheckResult("committed_ips", "fail", "could not list tracked files")
+    return classify_tracked_ipv4(files)
 
 
 def _listen_check(
@@ -439,8 +452,7 @@ def run_checks(
     ignored = env_ignored if env_ignored is not None else git_is_ignored(repo, ".env")
     results.append(classify_env_ignored(ignored))
 
-    files = list(tracked) if tracked is not None else git_tracked_text_files(repo)
-    results.append(classify_tracked_ipv4(files))
+    results.append(_committed_ip_result(repo, tracked))
     return results
 
 
