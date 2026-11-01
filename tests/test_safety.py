@@ -214,6 +214,33 @@ class TestRunChecks(unittest.TestCase):
         )
         self.assertEqual(worst_status(results), "pass")
 
+    def test_git_ls_files_failure_fails_closed(self) -> None:
+        """A failed git listing is not an empty tree with no addresses."""
+        import subprocess
+        from pathlib import Path
+
+        safe = {
+            "environ": {
+                "OLLAMA_BASE_URL": "http://127.0.0.1:11434",
+                "OLLAMA_FAST_MODEL": "qwen3.5:9b",
+                "OLLAMA_STRONG_MODEL": "devstral-small-2",
+            },
+            "listen_rows": [("127.0.0.1", 11434)],
+            "env_ignored": True,
+            "env_example_text": "OLLAMA_BASE_URL=http://127.0.0.1:11434\n",
+            "root": Path("/tmp/not-a-repo"),
+        }
+        failed = subprocess.CompletedProcess(["git", "ls-files", "-z"], 1, b"", b"fatal")
+        with patch("local_coding_slm.safety.subprocess.run", return_value=failed):
+            results = run_checks(**safe)
+        ips = next(item for item in results if item.name == "committed_ips")
+        self.assertEqual(ips.status, "fail")
+        self.assertIn("could not list", ips.message)
+        with patch("local_coding_slm.safety.subprocess.run", side_effect=OSError("git missing")):
+            raised = run_checks(**safe)
+        missing = next(item for item in raised if item.name == "committed_ips")
+        self.assertEqual(missing.status, "fail")
+
     def test_unofficial_library_tag_fails_run_checks(self) -> None:
         results = run_checks(
             environ={
