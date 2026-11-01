@@ -387,7 +387,7 @@ def git_tracked_text_files(root: Path) -> list[tuple[str, str]] | None:
         try:
             text = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
-            continue
+            return None
         out.append((str(path.relative_to(root)), text))
     return out
 
@@ -400,7 +400,7 @@ def _committed_ip_result(
         return classify_tracked_ipv4(list(tracked))
     files = git_tracked_text_files(repo)
     if files is None:
-        return CheckResult("committed_ips", "fail", "could not list tracked files")
+        return CheckResult("committed_ips", "fail", "could not read tracked files")
     return classify_tracked_ipv4(files)
 
 
