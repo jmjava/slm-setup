@@ -224,6 +224,29 @@ class ClientTests(unittest.TestCase):
         self.assertIn("unofficial_model_tag", str(raised.exception))
         mocked.assert_not_called()
 
+    def test_chat_does_not_post_rejected_base_url(self) -> None:
+        """A URL the server start check rejects must not be POSTed."""
+        urls = (
+            "http://8.8.8.8:11434",
+            "http://[::0]:11434",
+            "http://169.254.169.254:11434",
+            "http://127.0.0.1@evil.com",
+        )
+        for base_url in urls:
+            with self.subTest(base_url=base_url):
+                settings = OllamaSettings(
+                    base_url=base_url,
+                    fast_model="qwen3.5:9b",
+                    strong_model="devstral-small-2",
+                    num_ctx=4096,
+                )
+                with patch(
+                    "local_coding_slm.ollama_client.urllib.request.urlopen",
+                ) as mocked:
+                    with self.assertRaises(OllamaError):
+                        chat("sys", "write ping", model="fast", settings=settings)
+                mocked.assert_not_called()
+
     def test_chat_omitted_max_tokens_posts_cap_in_body(self) -> None:
         """Leftover #8: default clamp is options.num_predict, not payload.MAX_TOKENS."""
         payload = {"message": {"content": "ok"}}
