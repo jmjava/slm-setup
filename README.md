@@ -44,8 +44,9 @@ Training stays out of this bridge. Domain tracks:
 | --- | --- |
 | [jmjava/embabel-slm](https://github.com/jmjava/embabel-slm) | Embabel / Spring / Kotlin harness and later LoRA |
 | [jmjava/drivine-slm](https://github.com/jmjava/drivine-slm) | Drivine graph-client corpus and Halo AMD LoRA recipes |
+| [jmjava/slm-kiln](https://github.com/jmjava/slm-kiln) | Kiln in-process runner for GGUFs those tracks export (not MCP) |
 
-Point `OLLAMA_*` at a build from either track only after that track records a clean baseline. Host wiring for Halo: [examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md).
+Point `OLLAMA_*` at a build from either track only after that track records a clean baseline. Host wiring for Halo: [examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md). JVM in-process path for the same weights: `slm-kiln`.
 
 ## What this repo is not
 
