@@ -35,12 +35,24 @@ does bounded, mechanical generation on a private GPU host running
   live harness to the IDE 4080-class card first, then the Ryzen AI
   Max+ 395. Phase 3 timings stay on the downstairs forward.
 
+## Sibling model programs
+
+Training stays out of this bridge. Domain tracks:
+
+| Repo | Domain |
+| --- | --- |
+| [jmjava/embabel-slm](https://github.com/jmjava/embabel-slm) | Embabel / Spring / Kotlin harness and later LoRA |
+| [jmjava/drivine-slm](https://github.com/jmjava/drivine-slm) | Drivine graph-client corpus and Halo AMD LoRA recipes |
+
+Point `OLLAMA_*` at a build from either track only after that track records a clean baseline. Host wiring for Halo: [examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md).
+
 ## What this repo is not
 
 - Not a cloud model proxy.
 - Not a guide for exposing Ollama on the public internet.
 - Not a Cursor "Override OpenAI Base URL" setup. Keep premium models as-is and
   call the local SLM as MCP tools.
+- Not a training repo. Use `embabel-slm` or `drivine-slm` for adapters.
 
 ## Quick mental model
 
