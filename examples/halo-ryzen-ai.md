@@ -1,17 +1,18 @@
-# Example: Halo-class AMD inference host (future, public-safe)
+# Example: Halo-class AMD inference host (current paper host, public-safe)
 
-A later home-lab split is:
+Home-lab split as of **25 Nov 2026**:
 
 - **Workstation** — IDE + `local-coding-slm` MCP (unchanged)
-- **Halo-class AMD box** — Ryzen AI APU, unified memory, and an
-  AMD-compatible inference backend to validate
+- **Halo-class AMD box (GEEKOM)** — Ryzen AI APU, unified memory, primary
+  private Ollama host for Phase 3 / paper live rows
 
-This file is a **future host profile**, not a current install guide.
-It uses placeholders only. Put the real hostname, SSH name, and address
-in a gitignored `.env` or `*.local.md`. Never commit them.
+This file is the **current** Halo host profile. It uses placeholders only.
+Put the real hostname, SSH name, and address in a gitignored `.env` or
+`*.local.md`. Never commit them.
 
 The MCP tool names and `OLLAMA_*` variables do not change. Only the
-Ollama host changes. See [docs/roadmap.md](../docs/roadmap.md) Phase 4.
+Ollama host changes. See [docs/roadmap.md](../docs/roadmap.md) Phase 4
+(active) and [docs/harness-host-plan.md](../docs/harness-host-plan.md).
 
 ## Prefer SSH instead of a LAN bind
 
@@ -30,7 +31,8 @@ OLLAMA_BASE_URL=http://127.0.0.1:11436
 
 `11436` is an example unused port on the workstation. `11434` is Ollama's
 loopback port on Halo. `<halo-host>` is a name you already use. Do not scan
-for it.
+for it. The harness-host plan may use `11440` for the same forward — pick one
+and keep it consistent in `.env`.
 
 Documentation stand-ins (not a real household):
 
@@ -58,16 +60,19 @@ The workstation deployment checker warns on a private LAN URL and fails on a
 public or tunnel URL. It can inspect only listeners on the workstation; verify
 the remote Ollama bind separately on Halo. Re-run it after any `.env` change.
 
-## On the Halo (when this phase is claimed)
+## On the Halo
 
 1. Validate the current Ollama release on the Halo with its supported AMD
    backend. Record whether ROCm or Vulkan is used; do not assume either path
    before testing the actual machine.
 2. Pull the starter tags (`qwen3.5:9b`, `devstral-small-2`) only after the
    runtime answers on loopback, then confirm accelerated placement after one
-   short chat.
+   short chat (acceptance A13).
 3. Leave Ollama on `127.0.0.1:11434` if you use the SSH forward above.
 4. Treat "no route" as host down before changing addresses.
+5. Label live harness rows `host_class=halo-395`. Fall back to downstairs
+   NVIDIA only if placement fails; do not use the IDE workstation for paper
+   rates.
 
 Do **not** port-forward 11434 through a public router. Do not add Halo to
 Cursor's model picker. Default vendor-hosted cloud agents are not connected to

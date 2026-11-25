@@ -8,44 +8,39 @@ LAN addresses, or SKUs here.
 
 | Phase | Status | What it is |
 | --- | --- | --- |
-| 1 — inference host | Downstairs NVIDIA path is the live target; IDE box is MCP-only | Ollama on downstairs WSL GPUs; starter tags; no paper inference on the IDE machine |
+| 1 — inference host | **Halo / GEEKOM 395 is the live paper target**; IDE box is MCP-only | Ollama on Halo Ubuntu; starter tags; no paper inference on the IDE machine |
 | 2 — MCP bridge | Done | `local-coding-slm` stdio tools on the IDE workstation; Cursor / Copilot / Claude adapters |
-| 3 — measure | Protocol + corpus + apply gate + CI; **live rates need downstairs powered** | Layered scoring; next live rows go through downstairs |
-| **T12 Part A downstairs** | **Next hardware work** (early Nov 2026) | Second PC / WSL NVIDIA via SSH — was blocked on host power; [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
-| T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; do not block on downstairs; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
+| 3 — measure | Protocol + corpus + apply gate + CI; **live rates on Halo** | Layered scoring; next live rows use `host_class=halo-395` |
+| **Phase 4 Halo host** | **Active (claimed 25 Nov 2026)** | GEEKOM Ryzen AI Max+ 395 as primary private Ollama host; [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md) |
+| Downstairs NVIDIA | Fallback only | Use if Halo Ollama / AMD acceleration fails; [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
+| T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; do not block on Halo; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
 
-**Order (do not invert):** finish Phase 3 live measurement on **downstairs** (T12 Part A) **before** treating Halo as the next lab.
+**Order (25 Nov 2026 switch):** Phase 3 live measurement runs on **Halo** once A13 is green. Do **not** wait on downstairs power. Downstairs is the contingency path only.
 
-1. **First work — downstairs:** power on, WSL Ollama on the usable NVIDIA GPUs, `ssh -L` from the IDE workstation, A4-class check, scrubbed live harness / `run_eval.py --live` rows.
-2. **Then — keep measuring** Part A on downstairs through November.
-3. **Later — Halo / 395** (~Black Friday): bring-up and A13 only after downstairs is measuring.
+1. **First work — Halo:** Ubuntu + Ollama on the GEEKOM, AMD backend recorded, starter tags, `ssh -L` from the IDE workstation, A4-class check, scrubbed live harness / `run_eval.py --live` rows with `host_class=halo-395`.
+2. **Then — keep measuring** Part A on Halo through December / early January.
+3. **Fallback — downstairs:** only if Halo cannot place models on the 8060S-class GPU.
 
 **Personal harness link:** [harness-host-plan.md](harness-host-plan.md).
-Same `run_harness.py` / `run_eval.py --live` commands. Prove the link
-on the IDE NVIDIA card first; the AMD host in that plan comes after
-that link has a fast-model live row. Phase 3 timings stay on the
-downstairs forward.
+Same `run_harness.py` / `run_eval.py --live` commands. Point
+`OLLAMA_BASE_URL` at the Halo forward for paper rows.
 
-Public-safe downstairs notes:
-[examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md).
+Public-safe Halo notes:
+[examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
 
-**Halo / Ryzen AI Max+ 395:** planned acquire around **Black Friday week Nov 2026**.
-Claim Phase 4 only after A13. Until then Phase 3 live rates stay on **downstairs**.
-The IDE workstation runs MCP only — **do not** treat local Ollama there as a paper or Phase 3 path. Paper track:
+The IDE workstation runs MCP only — **do not** treat local Ollama there as a
+paper or Phase 3 path. Paper track:
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
 
 Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**). Live
-`pass@1` / `pass@end` freeze by early January (**downstairs** default; Halo only if
-A13 green); all paper numbers freeze by late February.
+`pass@1` / `pass@end` freeze by early January (**Halo** default;
+downstairs only if Halo failed); all paper numbers freeze by late February.
 
-## Phase 4 — Halo host profile (planned ~Black Friday Nov 2026)
+## Phase 4 — Halo host profile (active)
 
-Use an AMD Ryzen AI Max+ 395 / Halo-class box as **another private Ollama host**.
-Target arrival: **around Black Friday week November 2026**. The MCP server stays
-on the workstation. Premium agents still plan and review.
-
-Until the box exists and A13 passes, do not claim this phase — keep Phase 3 live
-rates on the **downstairs** host (T12 Part A). Do not skip downstairs to chase Halo.
+Use an AMD Ryzen AI Max+ 395 / Halo-class GEEKOM box as the **primary private
+Ollama host**. The MCP server stays on the workstation. Premium agents still
+plan and review.
 
 This is **not** a second product. It is the same bridge with a different
 `OLLAMA_BASE_URL` (or the same loopback URL behind `ssh -L`).
@@ -64,7 +59,7 @@ Public-safe notes: [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
 - Official Ollama library tags only; output treated as untrusted
 - Deployment checker (`A12`)
 
-### Halo-specific work (when the box exists)
+### Halo-specific work (now)
 
 1. Validate current Ollama on the Halo with its supported AMD backend; record
    whether ROCm or Vulkan is used. Confirm accelerated placement after a short
@@ -80,7 +75,7 @@ Public-safe notes: [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
    `scripts/check_deployment_safety.py`.
 5. Repeat acceptance **A1–A7** and **A11–A12**. Run **A4** (the workstation
    succeeds through SSH; an unauthorized LAN client fails). **A8/A9** only if
-   those clients are in use.
+   those clients are in use. Record **A13**.
 6. After the starter pair feels usable, record a Halo benchmark
    (model + quant, effective context, tok/s, time to first token,
    peak unified memory, whether output is reviewable). Do not treat a
@@ -94,12 +89,10 @@ Public-safe notes: [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
   use `OLLAMA_*`.
 - Do not expose Halo in Cursor's model picker.
 - Do not implement an automatic task classifier (still Phase 3).
-- Do not start Halo install or wrapper changes until this phase is
-  claimed.
 
 ### Optional hardening (only if Halo work shows the gap)
 
-These are **not** required to start Phase 4. Schedule them if the Halo
+These are **not** required to keep Phase 4 claimed. Schedule them if the Halo
 path needs them:
 
 - Wrapper preflight: reject a non-private `OLLAMA_BASE_URL` and fail
@@ -115,6 +108,8 @@ path needs them:
 - Larger-than-starter models on Halo unified memory
 - Application-level shared secret, only if Ollama can do it without
   breaking local IDE use
+- Downstairs NVIDIA as a deliberate second host for paired speed studies
+  (optional; not required for DOI)
 
 ## Out of scope (unchanged)
 

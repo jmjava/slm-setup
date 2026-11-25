@@ -107,7 +107,7 @@ Two backends, one schema:
 | Backend | When | What the clock measures |
 | --- | --- | --- |
 | `--backend stub` | Cloud / CI, no GPU | Real MCP + HTTP + scoring. Generation time is a loopback stub with scripted replies and `--fast-ms` / `--strong-ms` delays. |
-| `--backend live` | Workstation with Ollama | The same loop against `OLLAMA_BASE_URL`. Downstairs runs are the Phase 3 timings. Personal host order: [harness-host-plan.md](harness-host-plan.md). |
+| `--backend live` | Workstation with Ollama | The same loop against `OLLAMA_BASE_URL`. Halo / GEEKOM 395 runs are the Phase 3 paper timings (`host_class=halo-395`). Host order: [harness-host-plan.md](harness-host-plan.md). |
 
 Stub profiles (deterministic **workers**, not model-quality claims):
 

@@ -27,13 +27,14 @@ does bounded, mechanical generation on a private GPU host running
   locally; put the real Ollama URL in your environment, not in git.
 - **[examples/downstairs-wsl-gpu.md](examples/downstairs-wsl-gpu.md)** —
   second GPU host in WSL over SSH, placeholders only.
-- **[examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md)** — future
-  AMD Halo-class Ollama host, placeholders only.
+- **[examples/halo-ryzen-ai.md](examples/halo-ryzen-ai.md)** — current
+  AMD Halo / GEEKOM paper Ollama host, placeholders only.
 - **[docs/a8-a9-operator-checklist.md](docs/a8-a9-operator-checklist.md)** —
   Copilot A8 / Claude A9 clicks. Config in git is not a pass.
 - **[docs/harness-host-plan.md](docs/harness-host-plan.md)** — link the
-  live harness to the IDE 4080-class card first, then the Ryzen AI
-  Max+ 395. Phase 3 timings stay on the downstairs forward.
+  live harness to the Ryzen AI Max+ 395 (Halo) for paper rows;
+  downstairs NVIDIA is fallback only.
+
 
 ## Sibling model programs
 
