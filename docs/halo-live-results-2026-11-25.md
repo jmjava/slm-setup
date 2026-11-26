@@ -8,6 +8,9 @@ These rows are the first GPU sessions for this corpus commit. They are not a
 frozen Part A estimate. An earlier same-day harness directory was discarded
 (`backend=cpu`). Its rates are omitted.
 
+Harness policy and reporting choices are grounded in the Sources section of
+[evaluation-protocol.md](evaluation-protocol.md#sources).
+
 ## Environment
 
 - Ollama 0.40.17 on loopback

@@ -139,6 +139,38 @@ That harness is **local failover after a task was already delegated**.
 It does not prove that the premium model chose to delegate, nor that it
 accepted the patch.
 
+## Sources
+
+Grounding for harness and reporting choices. Layer order (transport,
+format, structure, behavior) is this protocol's contract; the works below
+ground execution scoring, the two rates, single repair, and the
+cascade—not that taxonomy.
+
+- **Score by executing the candidate; report pass@1 separately from the
+  rate after the fixed repair policy.** Chen et al., 2021, "Evaluating
+  Large Language Models Trained on Code" (arXiv:2107.03374); unbiased
+  pass@k from execution. **Deviation:** `pass@end` is the fraction
+  passing after fast, one same-model repair, then strong—not Chen's
+  pass@k over k independent samples.
+- **One same-model repair before escalation; do not hide retries in one
+  rate.** Olausson et al., ICLR 2024, "Is Self-Repair a Silver Bullet
+  for Code Generation?" (arXiv:2306.09896); extra repair samples often
+  do not justify budget. We cap at one repair and report `pass@1` and
+  `pass@end` separately.
+- **Fast model first, strong on escalation.** Chen, Zaharia, Zou, 2024,
+  "FrugalGPT" (arXiv:2305.05176), TMLR. **Deviation:** fixed rule (fast,
+  one repair, strong); no learned quality scorer.
+- **Known-bad or wrong-shaped output must fail; a skipped layer is not a
+  pass.** Just, Jalali, Ernst, 2014, "Defects4J" (ISSTA); fault artifacts
+  a checker must reject. Known-fail fixtures and `skip` after an earlier
+  layer fail follow that precedent.
+- **Name model tags, corpus digest, context, and seed-level settings in
+  dated results notes.** Pineau et al., 2021, "Improving Reproducibility
+  in Machine Learning Research."
+- **Report failed shots and empty-message cases, not only successes.**
+  Dodge et al., 2019, "Show Your Work: Improved Reporting of
+  Experimental Results" (EMNLP).
+
 ## Premium routing and review
 
 Spec §8 is an instruction to the premium agent, not a classifier
