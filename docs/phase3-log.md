@@ -8,6 +8,8 @@ Reproducible commands, complete 2026-09-06 observations, and limitations:
 Scoring method: [evaluation-protocol.md](evaluation-protocol.md).
 Cloud-safe stub + apply-gate run:
 [cloud-orchestrator-results-2026-09-07.md](cloud-orchestrator-results-2026-09-07.md).
+Halo Vulkan live sessions (`host_class=halo-395`):
+[halo-live-results-2026-11-25.md](halo-live-results-2026-11-25.md).
 
 | Date | Tool | Model | Task | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -20,6 +22,10 @@ Cloud-safe stub + apply-gate run:
 | 2026-09-10 | local_refactor | fixtures | harder suite + `rename_kwarg_across_files` | scorer only | Fourth case; leftover `subject=` alias vs colon-join drift; no live rate |
 | 2026-09-10 | local_refactor | fixtures | harder suite + `rename_payload_key_across_files` | scorer only | Fifth case; leftover `user_id` key / `.get()` alias vs `acct:` prefix drift; no live rate |
 | 2026-09-10 | local_refactor | fixtures | harder suite + `rename_env_var_across_files` | scorer only | Sixth case; leftover `APP_TOKEN` getenv / `.get()` alias vs `tok:` prefix drift; no live rate |
+| 2026-11-25 | local_generate_tests | fast | A6 `test_add_execute`, one shot | behavior fail | host_class=halo-395, backend=vulkan; format and structure passed; `pytest` name missing; not pass@1 |
+| 2026-11-25 | harness live | fast then strong | 16-case corpus, gpu-s1 | pass@1=0.19 pass@end=0.69 | host_class=halo-395, backend=vulkan; escalated=0.56; first_failure format 19, structure 2, behavior 1, transport 3; mcp_ms p50 9373 |
+| 2026-11-25 | harness live | fast then strong | 16-case corpus, gpu-s2 | pass@1=0.31 pass@end=0.69 | host_class=halo-395, backend=vulkan; escalated=0.62; first_failure format 19, structure 5, transport 1; mcp_ms p50 9713 |
+| 2026-11-25 | harness live | fast then strong | 16-case corpus, gpu-s3 | pass@1=0.31 pass@end=0.62 | host_class=halo-395, backend=vulkan; escalated=0.69; first_failure format 20, structure 3, behavior 1, transport 2; mcp_ms p50 8674 |
 
 Columns:
 
