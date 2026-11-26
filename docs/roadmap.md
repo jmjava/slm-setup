@@ -8,28 +8,31 @@ LAN addresses, or SKUs here.
 
 | Phase | Status | What it is |
 | --- | --- | --- |
-| 1 — inference host | **Halo / GEEKOM 395 is the live paper target**; IDE box is MCP-only | Ollama on Halo Ubuntu; starter tags; no paper inference on the IDE machine |
-| 2 — MCP bridge | Done | `local-coding-slm` stdio tools on the IDE workstation; Cursor / Copilot / Claude adapters |
-| 3 — measure | Protocol + corpus + apply gate + CI; **live rates on Halo** | Layered scoring; next live rows use `host_class=halo-395` |
-| **Phase 4 Halo host** | **Active (claimed 25 Nov 2026)** | GEEKOM Ryzen AI Max+ 395 as primary private Ollama host; [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md) |
+| 1 — inference host | **Halo / GEEKOM 395 is the live paper target** | Ollama on Halo Ubuntu; starter tags pulled. The 25 Nov 2026 run is same-machine: Cursor is on the Halo and talks to loopback Ollama |
+| 2 — MCP bridge | Done on the Halo (user-level stdio registration) | `local-coding-slm` stdio tools. Reload Cursor so the user-level entry loads in a multi-root workspace |
+| 3 — measure | Protocol + corpus + apply gate + CI; **first Vulkan live rows recorded** | Layered scoring; `host_class=halo-395`. See [halo-live-results-2026-11-25.md](halo-live-results-2026-11-25.md) |
+| **Phase 4 Halo host** | **Active. A13 green on Vulkan (25 Nov 2026), same machine** | GEEKOM Ryzen AI Max+ 395; integrated GPU on Vulkan, not ROCm. No SSH forward in this setup. [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md) |
 | Downstairs NVIDIA | Fallback only | Use if Halo Ollama / AMD acceleration fails; [examples/downstairs-wsl-gpu.md](../examples/downstairs-wsl-gpu.md) |
 | T12 Part B Copilot A8 / Claude A9 | Config ready; operator clicks pending | Same-machine only; do not block on Halo; [docs/a8-a9-operator-checklist.md](a8-a9-operator-checklist.md) |
 
 **Order (25 Nov 2026 switch):** Phase 3 live measurement runs on **Halo** once A13 is green. Do **not** wait on downstairs power. Downstairs is the contingency path only.
 
-1. **First work — Halo:** Ubuntu + Ollama on the GEEKOM, AMD backend recorded, starter tags, `ssh -L` from the IDE workstation, A4-class check, scrubbed live harness / `run_eval.py --live` rows with `host_class=halo-395`.
+1. **First work — Halo:** Ubuntu + Ollama on the GEEKOM, AMD backend recorded, starter tags, reachability (SSH forward when the IDE is a different machine; loopback when Cursor is on the Halo), A4-class check, scrubbed live harness / `run_eval.py --live` rows with `host_class=halo-395`. **Done for this box on 25 Nov 2026** (Vulkan placement, loopback, three harness sessions). Numbers are not frozen.
 2. **Then — keep measuring** Part A on Halo through December / early January.
 3. **Fallback — downstairs:** only if Halo cannot place models on the 8060S-class GPU.
 
 **Personal harness link:** [harness-host-plan.md](harness-host-plan.md).
-Same `run_harness.py` / `run_eval.py --live` commands. Point
-`OLLAMA_BASE_URL` at the Halo forward for paper rows.
+Same `run_harness.py` / `run_eval.py --live` commands. On this Halo,
+`OLLAMA_BASE_URL` is loopback. A split lab points it at the SSH forward.
 
 Public-safe Halo notes:
 [examples/halo-ryzen-ai.md](../examples/halo-ryzen-ai.md).
 
-The IDE workstation runs MCP only — **do not** treat local Ollama there as a
-paper or Phase 3 path. Paper track:
+**Same-machine note (25 Nov 2026):** Cursor and Ollama are this Halo. Paper
+rows used loopback `http://127.0.0.1:11434` and `host_class=halo-395`. A split
+lab still uses the SSH forward in
+[harness-host-plan.md](harness-host-plan.md). Do not average those timings
+with this loopback run. Paper track:
 [embabel-slm paper calendar](https://github.com/jmjava/embabel-slm/blob/main/docs/paper-calendar-2026.md).
 
 Paper track: Nov 2026–Mar 2027 Zenodo preprint (DOI by **31 Mar 2027**). Live
@@ -38,8 +41,16 @@ downstairs only if Halo failed); all paper numbers freeze by late February.
 
 ## Phase 4 — Halo host profile (active)
 
+**Demonstrated 25 Nov 2026:** same machine (Cursor on the Halo), Ollama on
+loopback only, starter tags, Vulkan integrated-GPU placement (`ollama ps`
+100% GPU; not ROCm), A4 LAN refusal, and three live harness sessions plus
+`run_eval.py --live`. Write-up:
+[halo-live-results-2026-11-25.md](halo-live-results-2026-11-25.md).
+A7 was observed once (`local_explain`). Reload Cursor so this user-level entry is what a multi-root workspace loads. A8/A9 remain operator clicks.
+
 Use an AMD Ryzen AI Max+ 395 / Halo-class GEEKOM box as the **primary private
-Ollama host**. The MCP server stays on the workstation. Premium agents still
+Ollama host**. When the IDE is a different machine, the MCP server stays
+there and reaches Halo through an SSH local forward. Premium agents still
 plan and review.
 
 This is **not** a second product. It is the same bridge with a different
