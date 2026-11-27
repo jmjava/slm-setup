@@ -1,7 +1,8 @@
 # Stub harness results — 2026-11-25
 
-No GPU. Cloud / CI path only. Confirms the fixture corpus and apply gate while
-Halo stays on Windows pureplay.
+No GPU. Cloud / CI path only. Confirms the fixture corpus and apply gate.
+
+**Historical (25 Nov 2026):** written while Halo was still on **Windows-only** pureplay for this stub path. **Current host (26 Nov 2026):** Halo primary boot is **Linux** (`ubuntu-A9-Mega`); these results remain the **no-GPU stub run** only—not GPU inference or paper-scored rows.
 
 ## Commands
 
